@@ -1,0 +1,25 @@
+/* Global Styles */
+    body,html {
+    padding: 0;
+    margin: 0;
+    background: #244b6e;
+    overflow: hidden;
+    }
+
+    @font-face {
+    font-smooth: never;
+    font-family: fixedSysEx;
+    src: url(FSEX300.ttf);
+}
+    
+    #gameField, #scoreField {
+    display: block;
+    margin: auto;
+    } 
+
+    #gameField {
+    position: fixed;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    }
