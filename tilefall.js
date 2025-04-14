@@ -34,7 +34,7 @@
   writeScore.score = 0;
   difficulty.removal = { value:0,color:0 }
   difficulty.setting = 4; // 1: every 3 tile let you remove a single one. //2 same color as last 3 tiles //3 removes limited by number of colors //4 same, but also limited by color  last 3tile //5 no removes at all.
-  difficulty.unmove = 1; // unmovable tiles
+  difficulty.unmove = 0; // unmovable tiles
   moveSlider.called = 0;
  //menu stuff
   var gameoverBox, settingsBox, gameoverText, roundnessSteps, tileSizeSlider, roundnessSlider, colorSlider, difficultySlider;
@@ -83,7 +83,7 @@ class tile {
   
   unLoadTiles() {
   if (this.size != tileSize / 10 && Math.random() > 0.8 ) { this.size = Math.max(this.size - animeScale, 0)}
-  if (this.size <= 0) { this.state = 0; makeGrid.loadTiles-- }
+  if (this.size <= 0) { this.state = 0; makeGrid.loadTiles--; }
   if ( makeGrid.loadTiles == 0 ) { resetTileCount(); newGame(); }
   }
 
@@ -138,7 +138,7 @@ class tile {
   //debug    
   //ctx.fillStyle = "black";
   //ctx.font = "12px Arial";
-  //ctx.fillText(  /* yi + ':' + xi  's:' + this.state + 'c:' + ("x:" + x + " y:" + y ) */ "c:" + this.cluster , this.rx + 25, this.ry + 25)
+  //ctx.fillText(  /* yi + ':' + xi  's:' + this.state + 'c:' + */ ("x:" + x + " y:" + y ) , this.rx + 25, this.ry + 25)
   }
 }
 
@@ -254,7 +254,7 @@ class slider {
   ctx.fillText(value, this.x+50 ,this.y+17 )
   }
 }
-
+/*
 function setColor(color) { //tile colors defined here
 
         switch (color) {
@@ -275,6 +275,7 @@ function setColor(color) { //tile colors defined here
         default: return "red";
         }
   }
+*/
 
 function setCanvasSize() {
 
@@ -453,13 +454,10 @@ function nextMatrix() {
         else  { makeGrid.colorTiles++; }
         }
     } 
-  //nextMatrix.validClusterCount = validTileClusterCount;
   }
-  //nextMatrix.validClusterCount = cluster;  
-  console.log("color tiles:",makeGrid.colorTiles," white tiles:",makeGrid.whiteTiles, " black tiles:",makeGrid.blackTiles, "valid tile Cluster count:", nextMatrix.validClusterCount )
-
-  if ( makeGrid.colorTiles - nextMatrix.validClusterCount == 0 )
-  console.log( "game over?" )
+//  console.log("color tiles:",makeGrid.colorTiles," white tiles:",makeGrid.whiteTiles, " black tiles:",makeGrid.blackTiles, "valid tile Cluster count:", nextMatrix.validClusterCount )
+//  if ( makeGrid.colorTiles - nextMatrix.validClusterCount == 0 )
+//  console.log( "game over?" )
 }
 
 function roundCorners() {
@@ -494,7 +492,6 @@ function roundCorners() {
     }
   }
 }
-
 
 function renderTiles() {
 
@@ -645,7 +642,7 @@ function writeScore() {
 
     scoreCtx.fillStyle = "#6bdcff" // "#244b6e"; 
     scoreCtx.fillText("score:" + writeScore.score,50,17)
-    scoreCtx.fillText("tiles:" + makeGrid.loadTiles,150,17)
+    scoreCtx.fillText("tiles:" + makeGrid.colorTiles,150,17)
     
     scoreCtx.fillText("undo",325,17)
     
@@ -658,7 +655,11 @@ function assingEventListener(call) {
       if (settingsBox.state == 2 && call === "game") { return } 
   
       canvas.addEventListener('contextmenu', rightClick);
-      scoreCanvas.addEventListener('click', undo);      
+
+      canvas.addEventListener('mousemove', Highlight); //temporary color change function
+      window.addEventListener('keydown',  tempColor);
+
+      scoreCanvas.addEventListener('click', undo); 
       //document.getElementById('scoreField').addEventListener('click', rightClick) ;
   
       canvas.removeEventListener('click', settingsClick)
@@ -678,39 +679,82 @@ function assingEventListener(call) {
       }
 }
 
-
-var nxl,xl = 0;
-var nyl,yl = 0;
-var currentColor
+var nxl,nyl
 
 function Highlight(e) { //Highlight the current tile 
 
   nxl = Math.trunc((e.clientX - canvas.offsetLeft + window.pageXOffset) / tileSize)
   nyl = Math.trunc((e.clientY - canvas.offsetTop + window.pageYOffset) / tileSize)
 
-  nextGrid[nxl][nyl].state = 0
-
-/*
-  if (xl != nxl || yl != nyl ) { 
-  nextGrid[nyl][nxl].size = tileSize - 10;
-  nextGrid[yl][xl].size = tileSize;
-  xl = nxl;
-  yl = nyl;
-*/
 }
 
+function tempColor(e) {
 
-function setUnmove() { //
+ console.log(e.code)
 
-      for (let x = 0; x < xSize; x++) {
-     for (let y = 0; y < ySize; y++) {
-     
-     if ( nextGrid[x][y].color == 14 ) {
-          makeGrid.whiteTiles++          
-          
-     } 
-}}
+if (e.code != "KeyM") { return }
+
+  let findColor = nextGrid[nxl][nyl].color
+  console.log(findColor)
+
+        switch (findColor) {
+        case 1: orange = prompt("new color"); break; //orange
+        case 2: brown = prompt("new color");  break;//brown
+        case 3: darkbrown = prompt("new color");  break;//dark brown
+        case 4: yellow = prompt("new color");  break;//yellow
+        case 5: green = prompt("new color");  break;//green
+        case 6: darkergreen = prompt("new color"); break;//darker green
+        case 7: lightblue = prompt("new color");  break;//light blue
+        case 8: blue = prompt("new color");  break;//blue
+        case 9: darkblue = prompt("new color");  break;//darkblue
+        case 10: pink = prompt("new color");  break;//pink
+        case 11: darkerpink = prompt("new color");  break;//darker pink
+        case 12: purple = prompt("new color");  break;//purple
+        case 13: black = prompt("new color");  break;//black 
+        case 14: white = prompt("new color");  break;//white  
+        default: "red";
+        }
 }
+
+var orange = "#FFCA57"
+var brown = "#B67E5C"
+var darkbrown = "#876047"
+var yellow = "#FFF570"
+var green = "#4ED06A"
+var darkergreen = "#42AE57"
+var lightblue = "#7AFFF0"
+var blue = "#6BDCFF"
+var darkblue = "#4B80AF"
+var  pink = "#FF7A88"
+var  darkerpink = "#EC5E7C"
+var  purple = "#804B79"
+var  black = "#151515"
+var  white = "#fafafa"
+
+/////////////////////
+
+  function setColor(color) { //tile colors defined here
+
+        switch (color) {
+        case 1: return orange; //orange
+        case 2: return brown; //brown
+        case 3: return darkbrown; //dark brown
+        case 4: return yellow; //yellow
+        case 5: return green; //green
+        case 6: return darkergreen; //darker green
+        case 7: return lightblue; //light blue
+        case 8: return blue; //blue
+        case 9: return darkblue; //darkblue
+        case 10: return pink; //pink
+        case 11: return darkerpink; //darker pink
+        case 12: return purple; //purple
+        case 13: return black; //black 
+        case 14: return white; //white  
+        default: return "red";
+        }
+  }
+
+/////////////////////
 
 function despawnUnmovable() {
 
@@ -752,10 +796,10 @@ function gameClick(e) {
 
   let x = Math.trunc((e.clientX - canvas.offsetLeft + window.pageXOffset) / tileSize) //, 
   let y = Math.trunc((e.clientY - canvas.offsetTop + window.pageYOffset) / tileSize) //}
-  if (nextGrid[x][y].state && nextGrid[x][y].color != 14 ) { thisClick(x,y) }
+  if (nextGrid[x][y].state && nextGrid[x][y].color != 14 ) { nextClick(x,y) }
 }
 
-function thisClick(u,v) {
+function nextClick(u,v) {
 
   var thisTile = nextGrid[u][v];
   var thisColor = thisTile.color;
@@ -781,6 +825,7 @@ function thisClick(u,v) {
     undoValues = structuredClone(difficulty.removal) //save last single remove value and color for undo
     undoValues.totalScore = structuredClone(highScore.totalScore);
     undoValues.writeScore = structuredClone(writeScore.score)
+    undoValues.colorTiles = structuredClone(makeGrid.colorTiles)
     undoValues.valid = 1;
 
    //vertical moving
@@ -825,20 +870,25 @@ lastRowEmptyTile();
   function lastRowEmptyTile() { //find the last empty tile in the last row
     
     let leftSide;
-    let rightMostEdge;
-    let leftTop;
+    let rightSide;
     let half = Math.floor(xSize / 2);
 
-    for (let x = 0; x < xSize; x++) {
+    for (let x = 0, z = xSize-1 ; x < xSize; z--, x++) {
 
-         if (x < half && nextGrid[x][ySize-1].state >= 2 && nextGrid[x+1][ySize-1].state == 0) { leftSide = x+1; } 
-         if (x > half && nextGrid[x][ySize-1].state >= 2 && nextGrid[x-1][ySize-1].state == 0) { rightMostEdge = x-1; }        
+         if (x+1 < half && nextGrid[x][ySize-1].state >= 2 && nextGrid[x+1][ySize-1].state == 0) { leftSide = x+1; } 
+         if (x > half && nextGrid[x][ySize-1].state >= 2 && nextGrid[x-1][ySize-1].state == 0) { rightSide = x-1; }
+
+ //        if (z > half && nextGrid[z][ySize-1].state >= 2 && nextGrid[z-1][ySize-1].state == 0) { rightSide = z-1; }     
+
+//         if (x > xSize - half && nextGrid[x][ySize-1].state >= 2 && nextGrid[x-1][ySize-1].state == 0) { rightSide = x-1; }        
         }
 
-        //this currently both true if the line is in the center, which is, not ideal, also doesn't deal with the fact if ther is an inmovable tile in the middle.
-
-//    if (leftSide) { findEmptyTilesL(leftSide) }
-//  if (rightMostEdge) { findEmptyTilesR(rightMostEdge) }
+    //this currently both true if the line is in the center, which is, not ideal, also doesn't deal with the fact if ther is an inmovable tile in the middle.
+    console.log( "left side:", leftSide)
+    console.log( "right side:", rightSide)
+    
+      if (leftSide) { moveLeftSide(leftSide) }
+      else if (rightSide) { moveRightSide(rightSide) }
   }
 
   function findEmptyTilesL(leftMostEdge) { //make an array with every empty tile on the left side
@@ -871,12 +921,15 @@ lastRowEmptyTile();
         moveRightSide(rightEdge)
   }
 
-  function moveLeftSide(leftEdge) { 
+  function moveLeftSide(leftSide) { 
 
-  let offset = ySize - leftEdge.length
+ // let offset = ySize - leftEdge.length
 
-  for (let y = offset; y < ySize; y++) {
-   for (let x = leftEdge[y - offset]; x >= 0; x--) {
+ // for (let y = offset; y < ySize; y++) {
+ //  for (let x = leftEdge[y - offset]; x >= 0; x--) {
+
+      for (let y = 0; y < ySize; y++) {
+        for (let x = leftSide; x >= 0; x--) {
 
         if (x > 0) {
             //structuredClone still doesn't work with custom class
@@ -899,12 +952,14 @@ lastRowEmptyTile();
   lastRowEmptyTile(); // test if there are more empty rows
   }
 
-  function moveRightSide(rightEdge) { //this also could be one function, but does it even matter at this point...
+  function moveRightSide(rightSide) { //this also could be one function, but does it even matter at this point...
 
-      let offset = ySize - rightEdge.length
-    
-      for (let y = offset; y < ySize; y++) {
-       for (let x = rightEdge[y - offset]; x < xSize; x++) {
+//      let offset = ySize - rightSide.length
+//      for (let y = offset; y < ySize; y++) {
+//       for (let x = rightSide[y - offset]; x < xSize; x++) {
+
+        for (let y = 0; y < ySize; y++) {
+        for (let x = rightSide; x < xSize ; x++) {
     
             if (x+1 < xSize) {
     
@@ -942,6 +997,7 @@ function undo() {
     Object.assign(difficulty.removal, undoValues) //target, source
     highScore.totalScore = undoValues.totalScore;
     writeScore.score = undoValues.writeScore;
+    makeGrid.colorTiles = undoValues.colorTiles;
     undoValues.valid = 0;
 
   for (let x = 0; x < xSize; x++) {
@@ -1315,26 +1371,24 @@ function checkSession() {
     }
 }
 
-function newGame(done) { // formally known as reset tiles
+function newGame() { // formally known as reset tiles
 
     assingEventListener("none");
     undoValues.valid = 0
     difficulty.removal = { value:0,color:0 } 
     highScore.totalScore = 0;
     writeScore.score = 0;
+    makeGrid.loadTiles = 0;
     
-   if ( makeGrid.colorTiles + makeGrid.whiteTiles + makeGrid.blackTiles > 0 ) {
+   if ( makeGrid.colorTiles + makeGrid.blackTiles > 0 ) {
     
    for (let x = 0; x < xSize; x++) {
     for (let y = 0; y < ySize; y++) {
 
-      if (nextGrid[x][y].state) { nextGrid[x][y].state = 5; }
-      //else ( makeGrid.loadTiles-- )
+      if (nextGrid[x][y].state) { nextGrid[x][y].state = 5; makeGrid.loadTiles++ }
       }}
     }
-    else { done = 1 }
-    
-    if( done ) {
+    else if ( !makeGrid.loadTiles ) {
  
      resetTileCount();
      makeGrid();
@@ -1343,9 +1397,10 @@ function newGame(done) { // formally known as reset tiles
      }
 }
 
+
   function resetTileCount() {
     nextMatrix.validClusterCount = 0;
-//  makeGrid.totalTiles = 0;
+    makeGrid.loadTiles = 0;
     makeGrid.colorTiles = 0;
     makeGrid.whiteTiles = 0;
     makeGrid.blackTiles = 0;
