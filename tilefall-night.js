@@ -44,7 +44,9 @@
   //const tileColors = ["#6BDCFF","#FFCA57","#B67E5C","#876047","#FFF570","#4ED06A","#42AE57","#7AFFF0","#6BDCFF","#4B80AF","#FF7A88","#EC5E7C","#804B79","#151515","#fafafa"]
   //const tileColors = ["#5c9cb0","#aa8d4b","#6e4d3b","#402d22","#b1ab60","#378146","#275f31","#69b2aa","#5c9cb0","#2e4863","#b26971","#9c4b5c","#3b2437","#151515","#cfcfcf"]
   
-  const tileColors = ["#439b99","#c98356","#6a4132","#39251d","#caba7d","#2a885f","#1e5b3f","#4eceb3","#439b99","#243d42","#e4514c","#b6383a","#50333a","#151515","#f4f4dc"]
+  const tileColors = ["black","#c98356","#6a4132","#39251d","#caba7d","#2a885f","#1e5b3f","#4eceb3","#439b99","#243d42","#e4514c","#b6383a","#50333a","#151515","#f4f4dc"]
+
+  //prev color zero: #439b99
 
   /* colors:
   orange = "#FFCA57"        hsl(41, 100%, 67%) 
@@ -89,6 +91,7 @@ class tile {
     this.bottomleft = 0;
     this.bottomright = 0;
     this.despawn = 0; //store previous color for despawn anim
+    this.block = 0;
     }
   
   moveTile() {
@@ -97,6 +100,11 @@ class tile {
 
   if (this.ry != this.ny) {this.ry = Math.min( this.ry + animeScale, this.ny); }
   if (this.ry == this.ny && this.rx == this.nx) { this.state = 3 }
+  }
+
+  resetPos(x,y) {
+   this.rx = this.nx = x * tileSize;
+   this.ry = this.ny = y * tileSize;
   }
 
   loadTiles() {
@@ -116,7 +124,7 @@ class tile {
   if (this.size <= 0) {this.state = 0; this.color = 0; this.cluster = 0;}
   }
   
-  despawnTile(x,y) {
+  despawnTile() {
 
    if (this.despawn.size != this.despawn.tileSize / 5)  { this.despawn.size = Math.max(this.despawn.size - animeScale, 0) }
    if (this.despawn.size == 0)  { this.despawn = 0; return }
@@ -131,7 +139,7 @@ class tile {
    ctx.fill();
    }
 
-  show(x,y) {
+  show() {
           
           let offset = 0;
           
@@ -156,15 +164,19 @@ class tile {
   ctx.roundRect(this.rx + offset, this.ry + offset, this.size + xmoveOffset, this.size + ymoveOffset, [this.topleft, this.topright, this.bottomright, this.bottomleft]); //x,y, size x, size y //[this.topleft, this.topright, this.bottomright, this.bottomleft]
   //debug
   //ctx.roundRect(x * tileSize + offset, y * tileSize + offset, this.size + xmoveOffset, this.size + ymoveOffset, [this.topleft, this.topright, this.bottomright, this.bottomleft]); //x,y, size x, size y //[this.topleft, this.topright, this.bottomright, this.bottomleft]
-
   ctx.fill();
-
-  //debug    
-//  ctx.fillStyle = "black";
-//  ctx.font = "12px Arial";
-//  ctx.fillText(  /* yi + ':' + xi  's:' + this.state + 'c:' + */ ("x:" + x + " y:" + y ) , this.rx + 25, this.ry + 25)
   }
+
+  debug(x,y) {
+
+  ctx.fillStyle = "white";
+  ctx.font = "12px Arial";
+  ctx.fillText(  /* yi + ':' + xi  's:' + this.state + 'c:' + ("x:" + x + " y:" + y ) */ this.block , this.rx + 25, this.ry + 25)
+  }
+
 }
+
+
 
 class menu {
 
@@ -416,12 +428,12 @@ function mergeTiles() { //merge single clusters consist of single tile
 function nextMatrix() {
 
   resetTileCount();
-    function goBack(leftCluster,upCluster) {
+    function goBack(leftCluster,upCluster,cx) {
 
-     for (let x = 0; x < xSize; x++) {
+     for (let x = 0; x <= cx; x++) {
       for (let y = 0; y < ySize; y++) {
 
-        if (nextGrid[x][y].cluster == leftCluster && nextGrid[x][y].state ) {
+        if (nextGrid[x][y].cluster == leftCluster ) {
         nextGrid[x][y].cluster = upCluster;
     }}}}
 
@@ -430,22 +442,23 @@ function nextMatrix() {
    for (let x = 0; x < xSize; x++) {
     for (let y = 0; y < ySize; y++) {
 
-      let thisTile = nextGrid[x][y];
+     nextGrid[x][y].cluster = 0;
 
-     if( thisTile.state ) {
+     if( nextGrid[x][y].state ) {
+
+         let thisTile = nextGrid[x][y]
   
         let up = {}
-        let down = {}
         let left = {}
   
         if (y && nextGrid[x][y-1].state) { up = nextGrid[x][y-1] } //up 
         if (x && nextGrid[x-1][y].state) { left = nextGrid[x-1][y] } //left 
   
-             if ( thisTile.color == up.color && thisTile.color == left.color) { thisTile.cluster = up.cluster; goBack(left.cluster,up.cluster) }
+             if ( thisTile.color == up.color && thisTile.color == left.color) { thisTile.cluster = up.cluster; goBack(left.cluster,up.cluster,x); }
         else if ( thisTile.color == left.color ) { thisTile.cluster = left.cluster;  }
         else if ( thisTile.color == up.color ) { thisTile.cluster = up.cluster; }  
         
-        else if ( thisTile.color < 13 ) { thisTile.cluster = ++cluster;  nextMatrix.validClusterCount++ }
+        else if ( thisTile.color < 13 ) { thisTile.cluster = ++cluster; nextMatrix.validClusterCount++ }
         else { thisTile.cluster = ++cluster }
 
    //    else { thisTile.cluster = ++cluster if (thisTile.color < 12) { validTileClusterCount++ } } 
@@ -460,6 +473,40 @@ function nextMatrix() {
 //  console.log("color tiles:",makeGrid.colorTiles," white tiles:",makeGrid.whiteTiles, " black tiles:",makeGrid.blackTiles, "valid tile Cluster count:", nextMatrix.validClusterCount )
 //  if ( makeGrid.colorTiles - nextMatrix.validClusterCount == 0 )
 //  console.log( "game over?" )
+}
+
+function blockMatrix() {
+
+    function goBack(leftBlock,upBlock,cx) {
+
+     for (let x = 0; x <= cx; x++) {
+      for (let y = 0; y < ySize; y++) {
+
+        if (nextGrid[x][y].block == leftBlock ) {
+        nextGrid[x][y].block = upBlock;
+    }}}}
+
+  let block = 0;
+
+   for (let x = 0; x < xSize; x++) {
+    for (let y = 0; y < ySize; y++) {
+
+     nextGrid[x][y].block = 0;
+
+     if( nextGrid[x][y].state ) {
+  
+        let up = 0;
+        let left = 0;
+
+         if (y && nextGrid[x][y-1].block) { nextGrid[x][y].block = up = nextGrid[x][y-1].block } //up 
+         if (x && nextGrid[x-1][y].block) { nextGrid[x][y].block = left = nextGrid[x-1][y].block } //left 
+         if (up && left && up != left ) { nextGrid[x][y].block = up; goBack(left,up,x); }
+         if (!up && !left) { nextGrid[x][y].block = ++block; }
+
+
+        }
+      } 
+    }
 }
 
 function roundCorners() {
@@ -503,16 +550,18 @@ function renderTiles() {
     for (let y = 0; y < ySize; y++) {
       
       let thisTile = nextGrid[x][y];
-      if (thisTile.despawn.state) { thisTile.despawnTile(x,y) }
+      if (thisTile.despawn.state) { thisTile.despawnTile() }
 
       switch (thisTile.state) {
 //    case 6: thisTile.despawnWhiteTile();thisTile.show(); break;
-      case 5: thisTile.unLoadTiles();thisTile.show(x,y); break; //disappearing after reset
-      case 4: thisTile.loadTiles();thisTile.show(x,y); break; //anim at game start
-      case 3: thisTile.show(x,y); break; //idle or unmovable
-      case 2: thisTile.moveTile();thisTile.show(x,y); break; //moving      
-      case 1: thisTile.scaleTile();thisTile.show(x,y); break; //disappearing after being clicked on
+      case 5: thisTile.unLoadTiles();thisTile.show(); break; //disappearing after reset
+      case 4: thisTile.loadTiles();thisTile.show(); break; //anim at game start
+      case 3: thisTile.show(); break; //idle or unmovable
+      case 2: thisTile.moveTile();thisTile.show(); break; //moving      
+  //  case 1: thisTile.scaleTile();thisTile.show(x,y); break; //disappearing after being clicked on
+      case 0: thisTile.resetPos(x,y); break;
       }
+      thisTile.debug(x,y);
       }}
 
 
@@ -636,17 +685,15 @@ function assingEventListener(call) {
       canvas.addEventListener('pointerdown', SliderSettings)
       }
 }
-
+/*
 var nxl,nyl
 
 function Highlight(e) { //Highlight the current tile 
 
   nxl = Math.trunc((e.clientX - canvas.offsetLeft + window.pageXOffset) / tileSize)
   nyl = Math.trunc((e.clientY - canvas.offsetTop + window.pageYOffset) / tileSize)
-
 }
-
-//hue, saturation, lightness
+*/
 
 function despawnUnmovable() {
 
@@ -759,15 +806,73 @@ function nextClick(u,v) {
             }
         
          nextGrid[x][y-valid].state = 0;
-         nextGrid[x][y-valid].cluster = 0;
+       //nextGrid[x][y-valid].cluster = 0;
          nextGrid[x][y-valid].color = 0;
          }
         }
        }
-despawnUnmovable();
-lastRowEmptyTile();
 
-  function lastRowEmptyTile() { //find the last empty tile in the last row
+//despawnUnmovable();
+blockMatrix();
+countBlocks();
+//findEmptyColl();
+//findLastRowBlock();
+
+
+function countBlocks() { //count amount of blocks, if there are more than one, call edge finder
+
+     let blockCount = [];
+
+      for (let x = nextClick.left; x < xSize - nextClick.right; x++) {
+      for (let y = 0; y < ySize; y++) {
+      
+      if (nextGrid[x][y].color != 14 && nextGrid[x][y].block && !blockCount.some((e) => e == nextGrid[x][y].block )) { blockCount.push( nextGrid[x][y].block ) }
+      }  //collHeight = Math.min( nextGrid[x].findIndex((e) => e.state), collHeight)
+    }
+  
+      console.log("blocks:", blockCount)
+      if ( blockCount.length > 1 ) { findEdge(blockCount); } 
+}
+
+function findEdge(blocks) { //make an array with every empty tile on the left side
+
+     let edge = [];
+     let emptyRowCount = 0;
+
+     function testEdge(blockID) {
+
+       console.log("finding edge of block", blockID)
+       edge = [];
+       emptyRowCount = 0;
+       let tileCount = 0;
+
+        for (let y = 0; y < ySize; y++) {
+          for (let x = 0; x < xSize ; x++) {
+   
+           if (nextGrid[x][y].block != blockID) { tileCount++; }
+           if (nextGrid[ x-1 <= 0 ? 0 : x-1 ][y].block == blockID && nextGrid[x][y].state == 0) { edge[y] = x; }
+
+           //if ( nextGrid[x][y].state && nextGrid[x+1][y].block == blockID ) { edge[y] = x+1; }
+           }
+          if ( tileCount == xSize ) { emptyRowCount++; }
+          tileCount = 0;
+          }
+        
+        edge = edge.filter(n => true)
+        console.log( "current edge:" , edge, "empty rows:", emptyRowCount)
+      }  
+/*
+        for (let i = 0; i < blocks.length; i++) {
+        
+             testEdge(blocks[i]);        
+             if ( edge.length == ySize - emptyRowCount ) { console.log( "valid edge:" , edge ); moveLeftSide(edge); return; } 
+             }
+*/
+testEdge(blocks[0])
+if ( edge.length == ySize - emptyRowCount ) { console.log( "valid edge:" , edge ); moveLeftSide(edge) }
+}
+
+  function findEmptyColl() { //find the and empty row, used when no white tiles are present.
     
     let leftSide;
     let rightSide;
@@ -777,32 +882,14 @@ lastRowEmptyTile();
 
     for (let x = nextClick.left; x < xSize - nextClick.right; x++) {
 
-//       if (x+1 < half && nextGrid[x][ySize-1].state >= 2 && nextGrid[x+1][ySize-1].state == 0) { leftSide = x+1; } 
-//       if (x > half && nextGrid[x][ySize-1].state >= 2 && nextGrid[x-1][ySize-1].state == 0) { rightSide = x-1; }
-
          if (nextGrid[x].every( el => el.state == 0) ) { gap = x; break; } 
         }
-
-    console.log( "gap:", gap)
     
       if ( gap <= half ) { nextClick.left += 1; moveLeftSide(gap)}
       else if (gap > half) { nextClick.right += 1; moveRightSide(gap) }
   }
 
-  function findEmptyTilesL(leftMostEdge) { //make an array with every empty tile on the left side
 
-          let leftEdge = [] // Array.from({length:ySize},() => 0)
-
-          for (let x = 0; x <= leftMostEdge; x++) {
-           for (let y = 0; y < ySize; y++) {
-
-            if (nextGrid[x][y].state && nextGrid[x+1][y].state == 0) { leftEdge[y] = x+1; }
-           }}
-        
-        leftEdge = leftEdge.filter(n => true) //filter out all the empty slots
-        console.log("left edge: "); console.log(leftEdge)
-        moveLeftSide(leftEdge)
-  }
 
     function findEmptyTilesR(rightMostEdge) { // this probably could be one function, but its cleaner this why;
 
@@ -819,20 +906,20 @@ lastRowEmptyTile();
         moveRightSide(rightEdge)
   }
 
-  function moveLeftSide(leftSide) { 
+  function moveLeftSide(leftEdge) { 
 
- //  let offset = ySize - leftEdge.length //this code is takes edge of the empty tiles 
- //  for (let y = offset; y < ySize; y++) {
- //  for (let x = leftEdge[y - offset]; x >= 0; x--) {
+   let offset = ySize - leftEdge.length //this code is takes edge of the empty tiles 
+   for (let y = offset; y < ySize; y++) {
+   for (let x = leftEdge[y - offset]; x >= 0; x--) {
 
-      for (let y = 0; y < ySize; y++) {
-        for (let x = leftSide; x >= 0; x--) {
+   //   for (let y = 0; y < ySize; y++) {
+   //     for (let x = leftSide; x >= 0; x--) {
 
         if (x > 0) {
             //structuredClone still doesn't work with custom class
             nextGrid[x][y].color = nextGrid[ x-1 ][y].color
             nextGrid[x][y].state = nextGrid[ x-1 ][y].state == 0 ? 0 : 2;
-            nextGrid[x][y].cluster = nextGrid[ x-1 ][y].cluster; //make sure to copy cluster 0 too otherwise roundness is mixed up
+          //nextGrid[x][y].cluster = nextGrid[ x-1 ][y].cluster; //make sure to copy cluster 0 too otherwise roundness is mixed up
             nextGrid[x][y].ry = nextGrid[ x-1 ][y].ry
             nextGrid[x][y].rx = nextGrid[ x-1 ][y].rx
 
@@ -841,12 +928,13 @@ lastRowEmptyTile();
             }
          else {
          nextGrid[x][y].state = 0;
-         nextGrid[x][y].cluster = 0;
+       //nextGrid[x][y].cluster = 0;
          nextGrid[x][y].color = 0;
          }
       }
     }
-  lastRowEmptyTile(); // test if there are more empty rows
+  //lastRowEmptyTile(); // test if there are more empty rows
+
   }
 
   function moveRightSide(rightSide) { //this also could be one function, but does it even matter at this point...
@@ -862,12 +950,12 @@ lastRowEmptyTile();
     
                 nextGrid[x][y].color = nextGrid[ x+1 ][y].color
                 nextGrid[x][y].state = nextGrid[ x+1 ][y].state == 0 ? 0 : 2;
-                nextGrid[x][y].cluster = nextGrid[ x+1 ][y].cluster; 
+               //nextGrid[x][y].cluster = nextGrid[ x+1 ][y].cluster; 
                 nextGrid[x][y].ry = nextGrid[ x+1 ][y].ry
                 nextGrid[x][y].rx = nextGrid[ x+1 ][y].rx
 
                 nextGrid[x][y].size = nextGrid[ x+1 ][y].size
-                //nextGrid[x][y].despawn = structuredClone(nextGrid[ x+1 ][y].despawn)
+              //nextGrid[x][y].despawn = structuredClone(nextGrid[ x+1 ][y].despawn)
                 }
              else {    
              nextGrid[x][y].state = 0;
