@@ -13,7 +13,9 @@
 
   const nextGrid = [];
   const undoGrid = [];
+
   const pathGrid = [];
+  const vPath = [];
 
   var resizeId; //window size
   var undoValues = {};
@@ -98,7 +100,6 @@ class tile {
     this.bottomright = 0;
     this.despawn = 0; //store previous color for despawn anim
     this.block = 0;
-    this.path = false;
     }
   
   moveTile() {
@@ -179,16 +180,6 @@ class tile {
   ctx.fill();
   }
   
-  showPath() {
-  
-  ctx.beginPath();
-  ctx.fillStyle = "#D9D9C3"
-
-  let offset = this.size / 4
-  ctx.roundRect(this.rx + offset , this.ry + offset , this.size / 4 , this.size / 4, [tileRoundness, tileRoundness, tileRoundness, tileRoundness]);
-  ctx.fill();
-  }
-
   debug(x,y) {
 
   ctx.fillStyle = "red";
@@ -196,6 +187,32 @@ class tile {
   ctx.fillText(  /* yi + ':' + xi  's:' + this.state + 'c:' + ("x:" + x + " y:" + y ) */ this.block, this.rx + 25, this.ry + 25) }
 }
 
+class visualPath {
+
+  constructor(rx,ry,state) {
+    this.rx = rx * tileSize; //rx = rendered X position, where the tile is shown.
+    this.ry = ry * tileSize; //ry = rendered Y position
+    this.color = "#D9D9C3";
+    this.state = state; // 0: hidden, removed, 1: needs to fade out, 2: active, 3: load in anim at start, 4: load out anim, at end.
+    this.size = 0;
+    this.fullsize = tileSize / 4;
+  }
+
+  loadPath() {
+  if (this.size != this.fullsize) { this.size = Math.min(this.size + animeScale / 6, this.fullsize) }
+  if (this.size == this.fullsize) {this.state = 2; }
+  }
+
+  show() {
+  
+  ctx.beginPath();
+  ctx.fillStyle = "#D9D9C3"
+  let offset = (tileSize - this.size) / 2
+  let roundness = tileRoundness / 4
+  ctx.roundRect(this.rx + offset , this.ry + offset , this.size, this.size, [roundness, roundness, roundness, roundness]);
+  ctx.fill();
+  }
+}
 
 class menu {
 
@@ -551,8 +568,15 @@ function renderTiles() {
       }
       // thisTile.debug(x,y);
       if (thisTile.color == 14) { thisTile.whiteTileCenter() }
-      if (thisTile.path) { thisTile.showPath() }
       }}
+
+      for (let i = 0; i < vPath.length; i++) {
+        
+        switch (vPath[i].state) {
+        case 1: vPath[i].loadPath(); vPath[i].show(); break;
+        case 2: vPath[i].show(); break;
+        }}
+
 
         switch (gameoverBox.state) {
         case 1: gameoverBox.playForward(); 
@@ -727,8 +751,10 @@ function gameClick(e) {
 
   let x = Math.trunc((e.clientX - canvas.offsetLeft + window.pageXOffset) / tileSize) //, 
   let y = Math.trunc((e.clientY - canvas.offsetTop + window.pageYOffset) / tileSize) //}
-  if (nextGrid[x][y].state && nextGrid[x][y].color != 14 ) { nextClick(x,y) }
-  if (y == ySize-1 && nextGrid[x][y].state == 0 ) { runPfind(x,y) }
+  
+  if (nextGrid[x][y].state && nextGrid[x][y].color != 14 ) { nextClick(x,y); return; }
+  if (y && !nextGrid[x][y].state) { runPfind(x,y); }
+
 }
 
 nextClick.left = 1
@@ -933,9 +959,11 @@ function findBlock() { //find a block that spans from top to bottom.
       }      
 }
 
+
 function runPfind(ex,ey) {
 
- let startCandidate = []
+  let startCandidate = [];
+  vPath.length = 0;
 
   for (let x = 0; x < xSize; x++) {
    for (let y = 0; y < ySize; y++) {
@@ -944,28 +972,21 @@ function runPfind(ex,ey) {
    else { pathGrid[x][y].walkable = true }
 
    if (!y && !nextGrid[x][y].state) { startCandidate.push(x) }
-   
-   nextGrid[x][y].path = false;
-   
    }}
 
- console.log(startCandidate)
- console.log(ex, ey)
- const path = aStar(pathGrid, startCandidate[0], 0, ex, ey);
- 
-    if (path) {
-  console.log("Path found:");
-  console.log(path);
+   while (startCandidate.length) {
 
-   for (let i = 0; i < path.length; i++) {
-    nextGrid[ path[i].row ][ path[i].col ].path = true
-  }
+      const path = aStar(pathGrid, startCandidate[0], 0, ex, ey);
+      if (path) {
 
-  // You can now process the 'path' array to visualize or use the path
-    } else {
-  console.log("No path found.");
- 
-  }
+          console.log("Path found:");
+          console.log(path);
+
+        for (let i = 0; i < path.length; i++) {
+            vPath[i] = new visualPath( path[i].row , path[i].col, 1 ) }
+            return; } 
+      else { startCandidate.shift() }
+      }
 }
 
 function aStar(grid,startx,starty,endx,endy) {
@@ -997,7 +1018,6 @@ function aStar(grid,startx,starty,endx,endy) {
 
     // If the current node is the end node, we've found the path!
     if (currentNode === endNode) {
-      console.log("hmm")
       return reconstructPath(currentNode);
     }
 
