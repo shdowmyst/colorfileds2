@@ -7,11 +7,14 @@
   var tileRoundness = roundnessSteps[4] //if tilesize is 50, 25 will make a circle, default 10
   var animeScale, menuFadeRate, menufps; // 2.2 at 144hz also not actual value: see MeasureFps()
   const canvas = document.getElementById('gameField');
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { alpha: false });
   const scoreCanvas = document.getElementById('scoreField');
-  const scoreCtx = scoreCanvas.getContext('2d')
+  const scoreCtx = scoreCanvas.getContext('2d', { alpha: false })
+
   const nextGrid = [];
   const undoGrid = [];
+  const pathGrid = [];
+
   var resizeId; //window size
   var undoValues = {};
 
@@ -44,9 +47,8 @@
   //const tileColors = ["#6BDCFF","#FFCA57","#B67E5C","#876047","#FFF570","#4ED06A","#42AE57","#7AFFF0","#6BDCFF","#4B80AF","#FF7A88","#EC5E7C","#804B79","#151515","#fafafa"]
   //const tileColors = ["#5c9cb0","#aa8d4b","#6e4d3b","#402d22","#b1ab60","#378146","#275f31","#69b2aa","#5c9cb0","#2e4863","#b26971","#9c4b5c","#3b2437","#151515","#cfcfcf"]
   
-  const tileColors = ["black","#c98356","#6a4132","#39251d","#caba7d","#2a885f","#1e5b3f","#4eceb3","#439b99","#243d42","#e4514c","#b6383a","#50333a","#151515","#f4f4dc"]
+   const tileColors = ["#439b99","#c98356","#6a4132","#39251d","#caba7d","#2a885f","#1e5b3f","#4eceb3","#439b99","#243d42","#e4514c","#b6383a","#50333a","#151515","#f4f4dc"]
 
-  //prev color zero: #439b99
 
   /* colors:
   orange = "#FFCA57"        hsl(41, 100%, 67%) 
@@ -75,6 +77,10 @@
   const settingsSprite = new Image();
   settingsSprite.src = 'settings-next-v2.png';
 
+  const tileTextureSource = new Image();
+  tileTextureSource.src = 'tiletexture.png';
+  const tileTexture = ctx.createPattern(tileTextureSource, "repeat");
+
 class tile {
   
   constructor(rx,ry,nx,ny,color,state) {
@@ -92,6 +98,7 @@ class tile {
     this.bottomright = 0;
     this.despawn = 0; //store previous color for despawn anim
     this.block = 0;
+    this.path = false;
     }
   
   moveTile() {
@@ -100,11 +107,6 @@ class tile {
 
   if (this.ry != this.ny) {this.ry = Math.min( this.ry + animeScale, this.ny); }
   if (this.ry == this.ny && this.rx == this.nx) { this.state = 3 }
-  }
-
-  resetPos(x,y) {
-   this.rx = this.nx = x * tileSize;
-   this.ry = this.ny = y * tileSize;
   }
 
   loadTiles() {
@@ -152,7 +154,9 @@ class tile {
           }}
 
   ctx.beginPath(); 
-  ctx.fillStyle = tileColors[this.color]; // setColor(this.color);
+  ctx.fillStyle = tileColors[this.color];
+
+   // setColor(this.color);
   // ctx.fillStyle = "hsl(" + hue + ")"; why on earth did I used hsl here
 
   let xmoveOffset = 0;
@@ -162,20 +166,35 @@ class tile {
     if (this.ry != this.ny) {ymoveOffset = 1 }
   
   ctx.roundRect(this.rx + offset, this.ry + offset, this.size + xmoveOffset, this.size + ymoveOffset, [this.topleft, this.topright, this.bottomright, this.bottomleft]); //x,y, size x, size y //[this.topleft, this.topright, this.bottomright, this.bottomleft]
-  //debug
-  //ctx.roundRect(x * tileSize + offset, y * tileSize + offset, this.size + xmoveOffset, this.size + ymoveOffset, [this.topleft, this.topright, this.bottomright, this.bottomleft]); //x,y, size x, size y //[this.topleft, this.topright, this.bottomright, this.bottomleft]
+  ctx.fill();
+  }
+
+  whiteTileCenter() {
+  
+  ctx.beginPath();
+  ctx.fillStyle = "#D9D9C3"
+
+  let offset = this.size / 3
+  ctx.roundRect(this.rx + offset , this.ry + offset , this.size / 3 , this.size / 3, [this.topleft, this.topright, this.bottomright, this.bottomleft]);
+  ctx.fill();
+  }
+  
+  showPath() {
+  
+  ctx.beginPath();
+  ctx.fillStyle = "#D9D9C3"
+
+  let offset = this.size / 4
+  ctx.roundRect(this.rx + offset , this.ry + offset , this.size / 4 , this.size / 4, [tileRoundness, tileRoundness, tileRoundness, tileRoundness]);
   ctx.fill();
   }
 
   debug(x,y) {
 
-  ctx.fillStyle = "white";
-  ctx.font = "12px Arial";
-  ctx.fillText(  /* yi + ':' + xi  's:' + this.state + 'c:' + ("x:" + x + " y:" + y ) */ this.block , this.rx + 25, this.ry + 25)
-  }
-
+  ctx.fillStyle = "red";
+  ctx.font = "12px arial";
+  ctx.fillText(  /* yi + ':' + xi  's:' + this.state + 'c:' + ("x:" + x + " y:" + y ) */ this.block, this.rx + 25, this.ry + 25) }
 }
-
 
 
 class menu {
@@ -360,14 +379,16 @@ function makeGrid(res) {
  for (let x = 0; x < xSize; x++) {
     nextGrid[x] = [];
     undoGrid[x] = [];
+    pathGrid[x] = []; // only do tis if white tiles are active
     for (let y = 0; y < ySize; y++) {
      nextGrid[x][y] = new tile(x,y,x,y,makeGrid.colorLookup[Math.floor(Math.random() * makeGrid.colors)],4) // rx,ry,nx,ny,color,state
-     if ( difficulty.unmove && Math.random() < 0.15 ) {  nextGrid[x][y].color = 14; }
+     
+     if ( difficulty.unmove ) { pathGrid[x][y] = { row: x, col: y, walkable: true, gCost: Infinity, hCost: Infinity, fCost: Infinity, parent: null }
+                              if (Math.random() < 0.15 ) {  nextGrid[x][y].color = 14; } }
      }
    }
 
   mergeTiles();
- //setUnmove();
 }
 
 function makePalette() { 
@@ -468,45 +489,13 @@ function nextMatrix() {
         else if (thisTile.color == 13) { makeGrid.blackTiles++; }
         else  { makeGrid.colorTiles++; }
         }
+        else {  nextGrid[x][y].rx = nextGrid[x][y].nx = x * tileSize  // resets state 0 tile pos, has nothing to do with actual matrix
+                nextGrid[x][y].ry = nextGrid[x][y].ny = y * tileSize }
     } 
   }
 //  console.log("color tiles:",makeGrid.colorTiles," white tiles:",makeGrid.whiteTiles, " black tiles:",makeGrid.blackTiles, "valid tile Cluster count:", nextMatrix.validClusterCount )
 //  if ( makeGrid.colorTiles - nextMatrix.validClusterCount == 0 )
 //  console.log( "game over?" )
-}
-
-function blockMatrix() {
-
-    function goBack(leftBlock,upBlock,cx) {
-
-     for (let x = 0; x <= cx; x++) {
-      for (let y = 0; y < ySize; y++) {
-
-        if (nextGrid[x][y].block == leftBlock ) {
-        nextGrid[x][y].block = upBlock;
-    }}}}
-
-  let block = 0;
-
-   for (let x = 0; x < xSize; x++) {
-    for (let y = 0; y < ySize; y++) {
-
-     nextGrid[x][y].block = 0;
-
-     if( nextGrid[x][y].state ) {
-  
-        let up = 0;
-        let left = 0;
-
-         if (y && nextGrid[x][y-1].block) { nextGrid[x][y].block = up = nextGrid[x][y-1].block } //up 
-         if (x && nextGrid[x-1][y].block) { nextGrid[x][y].block = left = nextGrid[x-1][y].block } //left 
-         if (up && left && up != left ) { nextGrid[x][y].block = up; goBack(left,up,x); }
-         if (!up && !left) { nextGrid[x][y].block = ++block; }
-
-
-        }
-      } 
-    }
 }
 
 function roundCorners() {
@@ -559,11 +548,11 @@ function renderTiles() {
       case 3: thisTile.show(); break; //idle or unmovable
       case 2: thisTile.moveTile();thisTile.show(); break; //moving      
   //  case 1: thisTile.scaleTile();thisTile.show(x,y); break; //disappearing after being clicked on
-      case 0: thisTile.resetPos(x,y); break;
       }
-      thisTile.debug(x,y);
+      // thisTile.debug(x,y);
+      if (thisTile.color == 14) { thisTile.whiteTileCenter() }
+      if (thisTile.path) { thisTile.showPath() }
       }}
-
 
         switch (gameoverBox.state) {
         case 1: gameoverBox.playForward(); 
@@ -739,6 +728,7 @@ function gameClick(e) {
   let x = Math.trunc((e.clientX - canvas.offsetLeft + window.pageXOffset) / tileSize) //, 
   let y = Math.trunc((e.clientY - canvas.offsetTop + window.pageYOffset) / tileSize) //}
   if (nextGrid[x][y].state && nextGrid[x][y].color != 14 ) { nextClick(x,y) }
+  if (y == ySize-1 && nextGrid[x][y].state == 0 ) { runPfind(x,y) }
 }
 
 nextClick.left = 1
@@ -813,64 +803,8 @@ function nextClick(u,v) {
        }
 
 //despawnUnmovable();
-blockMatrix();
-countBlocks();
+
 //findEmptyColl();
-//findLastRowBlock();
-
-
-function countBlocks() { //count amount of blocks, if there are more than one, call edge finder
-
-     let blockCount = [];
-
-      for (let x = nextClick.left; x < xSize - nextClick.right; x++) {
-      for (let y = 0; y < ySize; y++) {
-      
-      if (nextGrid[x][y].color != 14 && nextGrid[x][y].block && !blockCount.some((e) => e == nextGrid[x][y].block )) { blockCount.push( nextGrid[x][y].block ) }
-      }  //collHeight = Math.min( nextGrid[x].findIndex((e) => e.state), collHeight)
-    }
-  
-      console.log("blocks:", blockCount)
-      if ( blockCount.length > 1 ) { findEdge(blockCount); } 
-}
-
-function findEdge(blocks) { //make an array with every empty tile on the left side
-
-     let edge = [];
-     let emptyRowCount = 0;
-
-     function testEdge(blockID) {
-
-       console.log("finding edge of block", blockID)
-       edge = [];
-       emptyRowCount = 0;
-       let tileCount = 0;
-
-        for (let y = 0; y < ySize; y++) {
-          for (let x = 0; x < xSize ; x++) {
-   
-           if (nextGrid[x][y].block != blockID) { tileCount++; }
-           if (nextGrid[ x-1 <= 0 ? 0 : x-1 ][y].block == blockID && nextGrid[x][y].state == 0) { edge[y] = x; }
-
-           //if ( nextGrid[x][y].state && nextGrid[x+1][y].block == blockID ) { edge[y] = x+1; }
-           }
-          if ( tileCount == xSize ) { emptyRowCount++; }
-          tileCount = 0;
-          }
-        
-        edge = edge.filter(n => true)
-        console.log( "current edge:" , edge, "empty rows:", emptyRowCount)
-      }  
-/*
-        for (let i = 0; i < blocks.length; i++) {
-        
-             testEdge(blocks[i]);        
-             if ( edge.length == ySize - emptyRowCount ) { console.log( "valid edge:" , edge ); moveLeftSide(edge); return; } 
-             }
-*/
-testEdge(blocks[0])
-if ( edge.length == ySize - emptyRowCount ) { console.log( "valid edge:" , edge ); moveLeftSide(edge) }
-}
 
   function findEmptyColl() { //find the and empty row, used when no white tiles are present.
     
@@ -882,7 +816,7 @@ if ( edge.length == ySize - emptyRowCount ) { console.log( "valid edge:" , edge 
 
     for (let x = nextClick.left; x < xSize - nextClick.right; x++) {
 
-         if (nextGrid[x].every( el => el.state == 0) ) { gap = x; break; } 
+         if (nextGrid[x].every( el => el.state == 0) ) { gap = x; break; }
         }
     
       if ( gap <= half ) { nextClick.left += 1; moveLeftSide(gap)}
@@ -890,51 +824,32 @@ if ( edge.length == ySize - emptyRowCount ) { console.log( "valid edge:" , edge 
   }
 
 
+  function moveLeftSide(leftSide) { 
 
-    function findEmptyTilesR(rightMostEdge) { // this probably could be one function, but its cleaner this why;
+  // let offset = ySize - leftEdge.length //this code is takes edge of the empty tiles 
+  // for (let y = offset; y < ySize; y++) {
+  // for (let x = leftEdge[y - offset]; x >= 0; x--) {
 
-          let rightEdge = []
-
-          for (let x = xSize-1; x >= rightMostEdge; x--) { 
-           for (let y = 0; y < ySize; y++) {
-
-            if (nextGrid[x][y].state >= 2 && nextGrid[x-1][y].state == 0) { rightEdge[y] = x-1; }
-          }}
-
-        rightEdge = rightEdge.filter(n => true)    
-        console.log("right edge: " + rightEdge)
-        moveRightSide(rightEdge)
-  }
-
-  function moveLeftSide(leftEdge) { 
-
-   let offset = ySize - leftEdge.length //this code is takes edge of the empty tiles 
-   for (let y = offset; y < ySize; y++) {
-   for (let x = leftEdge[y - offset]; x >= 0; x--) {
-
-   //   for (let y = 0; y < ySize; y++) {
-   //     for (let x = leftSide; x >= 0; x--) {
+      for (let y = 0; y < ySize; y++) {
+        for (let x = leftSide; x >= 0; x--) {
 
         if (x > 0) {
             //structuredClone still doesn't work with custom class
             nextGrid[x][y].color = nextGrid[ x-1 ][y].color
             nextGrid[x][y].state = nextGrid[ x-1 ][y].state == 0 ? 0 : 2;
-          //nextGrid[x][y].cluster = nextGrid[ x-1 ][y].cluster; //make sure to copy cluster 0 too otherwise roundness is mixed up
             nextGrid[x][y].ry = nextGrid[ x-1 ][y].ry
             nextGrid[x][y].rx = nextGrid[ x-1 ][y].rx
+//          nextGrid[x][y].size = nextGrid[ x-1 ][y].size //first version despawn white tiles needed this only
 
-            nextGrid[x][y].size = nextGrid[ x-1 ][y].size //its probably a better idea to change despawn tile to deal with white tile than this
-            //nextGrid[x][y].despawn = structuredClone(nextGrid[ x-1 ][y].despawn) // immediately overwrites the despawn anim, causing it not to play, wonder why i added it tho
             }
          else {
          nextGrid[x][y].state = 0;
-       //nextGrid[x][y].cluster = 0;
+
          nextGrid[x][y].color = 0;
          }
       }
     }
-  //lastRowEmptyTile(); // test if there are more empty rows
-
+  findEmptyColl(); // test if there are more empty rows
   }
 
   function moveRightSide(rightSide) { //this also could be one function, but does it even matter at this point...
@@ -947,15 +862,11 @@ if ( edge.length == ySize - emptyRowCount ) { console.log( "valid edge:" , edge 
         for (let x = rightSide; x < xSize ; x++) {
     
             if (x+1 < xSize) {
-    
                 nextGrid[x][y].color = nextGrid[ x+1 ][y].color
                 nextGrid[x][y].state = nextGrid[ x+1 ][y].state == 0 ? 0 : 2;
-               //nextGrid[x][y].cluster = nextGrid[ x+1 ][y].cluster; 
                 nextGrid[x][y].ry = nextGrid[ x+1 ][y].ry
                 nextGrid[x][y].rx = nextGrid[ x+1 ][y].rx
-
-                nextGrid[x][y].size = nextGrid[ x+1 ][y].size
-              //nextGrid[x][y].despawn = structuredClone(nextGrid[ x+1 ][y].despawn)
+//              nextGrid[x][y].size = nextGrid[ x+1 ][y].size
                 }
              else {    
              nextGrid[x][y].state = 0;
@@ -964,7 +875,7 @@ if ( edge.length == ySize - emptyRowCount ) { console.log( "valid edge:" , edge 
              }
           }
         }
-  lastRowEmptyTile();
+  findEmptyColl();
   }
 
 
@@ -975,8 +886,192 @@ if ( edge.length == ySize - emptyRowCount ) { console.log( "valid edge:" , edge 
     roundCorners();
     // gameOver(); //check  if its end of the game.
     if (score > 1) { highScore(score) } //calculate score
-}  
+}
+
+function blockMatrix() {
+
+    function goBack(leftBlock,upBlock,cx) {
+
+     for (let x = 0; x <= cx; x++) {
+      for (let y = 0; y < ySize; y++) {
+
+        if (nextGrid[x][y].block == leftBlock ) {
+        nextGrid[x][y].block = upBlock;
+    }}}}
+
+  let block = 0;
+
+   for (let x = 0; x < xSize; x++) {
+    for (let y = 0; y < ySize; y++) {
+
+     nextGrid[x][y].block = 0;
+
+     if( nextGrid[x][y].state == 0) {
+  
+        let up = 0;
+        let left = 0;
+
+         if (y && nextGrid[x][y-1].block) { nextGrid[x][y].block = up = nextGrid[x][y-1].block } //up 
+         if (x && nextGrid[x-1][y].block) { nextGrid[x][y].block = left = nextGrid[x-1][y].block } //left 
+         if (up && left && up != left ) { nextGrid[x][y].block = up; goBack(left,up,x); }
+         if (!up && !left) { nextGrid[x][y].block = ++block; }
+        }
+      } 
+    }
+}
+
+function findBlock() { //find a block that spans from top to bottom.
+
+     let blockTop = [];
+     let blockBottom = [];
+     let block;
+
+      for (let x = nextClick.left; x < xSize - nextClick.right; x++) {
+      
+      if (nextGrid[x][0].block && !blockCount.some((e) => e == nextGrid[x][0].block )) { blockTop.push( nextGrid[x][0].block ) }
+      if (nextGrid[x][ySize-1].block && !blockCount.some((e) => e == nextGrid[x][ySize-1].block )) { blockBottom.push( nextGrid[x][0].block ) }
+      }      
+}
+
+function runPfind(ex,ey) {
+
+ let startCandidate = []
+
+  for (let x = 0; x < xSize; x++) {
+   for (let y = 0; y < ySize; y++) {
+
+   if (nextGrid[x][y].state) { pathGrid[x][y].walkable = false }
+   else { pathGrid[x][y].walkable = true }
+
+   if (!y && !nextGrid[x][y].state) { startCandidate.push(x) }
    
+   nextGrid[x][y].path = false;
+   
+   }}
+
+ console.log(startCandidate)
+ console.log(ex, ey)
+ const path = aStar(pathGrid, startCandidate[0], 0, ex, ey);
+ 
+    if (path) {
+  console.log("Path found:");
+  console.log(path);
+
+   for (let i = 0; i < path.length; i++) {
+    nextGrid[ path[i].row ][ path[i].col ].path = true
+  }
+
+  // You can now process the 'path' array to visualize or use the path
+    } else {
+  console.log("No path found.");
+ 
+  }
+}
+
+function aStar(grid,startx,starty,endx,endy) {
+  const startNode = grid[startx][starty];
+  const endNode = grid[endx][endy];
+  const openSet = [startNode];
+  const closedSet = [];
+
+  // Initialize start node's gCost (distance from start) and fCost (gCost + heuristic)
+  startNode.gCost = 0;
+  startNode.hCost = heuristic(startNode, endNode);
+  startNode.fCost = startNode.gCost + startNode.hCost;
+  startNode.parent = null; // Initially, the start node has no parent
+
+  while (openSet.length > 0) {
+    // Get the node in openSet with the lowest fCost
+    let currentNode = openSet[0];
+    let currentIndex = 0;
+    for (let i = 1; i < openSet.length; i++) {
+      if (openSet[i].fCost < currentNode.fCost) {
+        currentNode = openSet[i];
+        currentIndex = i;
+      }
+    }
+
+    // Remove the current node from openSet and add it to closedSet
+    openSet.splice(currentIndex, 1);
+    closedSet.push(currentNode);
+
+    // If the current node is the end node, we've found the path!
+    if (currentNode === endNode) {
+      console.log("hmm")
+      return reconstructPath(currentNode);
+    }
+
+    // Explore neighbors
+    const neighbors = getNeighbors(grid, currentNode);
+
+    for (const neighbor of neighbors) {
+      if (closedSet.includes(neighbor) || !neighbor.walkable) {
+        continue; // Ignore already evaluated or unwalkable neighbors
+      }
+
+      const newGCost = currentNode.gCost + 1; // Assuming each step has a cost of 1
+
+      if (newGCost < neighbor.gCost || !openSet.includes(neighbor)) {
+        neighbor.gCost = newGCost;
+        neighbor.hCost = heuristic(neighbor, endNode);
+        neighbor.fCost = neighbor.gCost + neighbor.hCost;
+        neighbor.parent = currentNode; // Keep track of where we came from
+
+        if (!openSet.includes(neighbor)) {
+          openSet.push(neighbor);
+        }
+      }
+    }
+  }
+
+  // If the openSet becomes empty and we haven't reached the end, there's no path
+  return null;
+}
+
+function heuristic(nodeA, nodeB) {
+  // Manhattan distance (a common heuristic for grid-based paths)
+  return Math.abs(nodeA.row - nodeB.row) + Math.abs(nodeA.col - nodeB.col);
+}
+
+function getNeighbors(grid, node) {
+  const neighbors = [];
+  const row = node.row;
+  const col = node.col;
+  const numRows = grid.length;
+  const numCols = grid[0].length;
+
+  // Define possible neighbor offsets (up, down, left, right)
+  const neighborOffsets = [
+    [-1, 0], // Up
+    [1, 0],  // Down
+    [0, -1], // Left
+    [0, 1],  // Right
+  ];
+
+  for (const offset of neighborOffsets) {
+    const newRow = row + offset[0];
+    const newCol = col + offset[1];
+
+    // Check if the new coordinates are within the grid boundaries
+    if (newRow >= 0 && newRow < numRows && newCol >= 0 && newCol < numCols) {
+      neighbors.push(grid[newRow][newCol]);
+    }
+  }
+
+  return neighbors;
+}
+
+function reconstructPath(endNode) {
+  const path = [];
+  let currentNode = endNode;
+  while (currentNode) {
+    path.unshift(currentNode); // Add to the beginning to maintain order
+    currentNode = currentNode.parent;
+  }
+  return path;
+}
+
+ 
 function undo() {
 
     if (!gameoverBox.state && undoValues.valid) {
