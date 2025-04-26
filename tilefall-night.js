@@ -29,7 +29,7 @@
   
   //these updated by nextMatrix only.
   makeGrid.loadTiles = 0;  //used to for load / unload animation
-  makeGrid.colorTiles = 0;  //used for game over state
+  makeGrid.colorTiles = 1;  //used for game over state // starts with 1 so gameover don't immediately tirggers
   makeGrid.whiteTiles = 0;  //currently have no actual use
   makeGrid.blackTiles = 0;  //same
 
@@ -79,11 +79,7 @@
   gameOverSprite.src = 'allClear-next.png';
 
   const settingsSprite = new Image();
-  settingsSprite.src = 'settings-next-v2.png';
-
-  const tileTextureSource = new Image();
-  tileTextureSource.src = 'tiletexture.png';
-  const tileTexture = ctx.createPattern(tileTextureSource, "repeat");
+  settingsSprite.src = 'settings-next-v3.png';
 
 class tile {
   
@@ -140,7 +136,7 @@ class tile {
 
    ctx.beginPath(); 
    ctx.fillStyle = tileColors[this.despawn.color];
-   ctx.roundRect(this.despawn.rx + offset, this.despawn.ry + offset, this.despawn.size, this.despawn.size, [tileRoundness, tileRoundness, tileRoundness, tileRoundness]); //x,y, size x, size y //[this.topleft, this.topright, this.bottomright, this.bottomleft]
+   ctx.roundRect(this.despawn.rx + offset, this.despawn.ry + offset, this.despawn.size, this.despawn.size, tileRoundness); //x,y, size x, size y //[this.topleft, this.topright, this.bottomright, this.bottomleft]
    ctx.fill();
    }
 
@@ -211,7 +207,7 @@ class visualPath {
   ctx.fillStyle = "#D9D9C3"
   let offset = (tileSize - this.size) / 2
   let roundness = tileRoundness / 4
-  ctx.roundRect(this.rx + offset , this.ry + offset , this.size, this.size, [roundness, roundness, roundness, roundness]);
+  ctx.roundRect(this.rx + offset , this.ry + offset , this.size, this.size, roundness);
   ctx.fill();
   }
 }
@@ -291,21 +287,21 @@ class menuText {
 
   show(text) {
   ctx.fillStyle = "rgba(107,220,255," + this.alpha + ")";
-  ctx.font = "16px fixedSysEx";
+  ctx.font = "16px inconsolata";
   ctx.fillText(  text || this.text , this.x , this.y)
   }
 }
 
 class slider {
 
-  constructor(x,y,low,high,steps,range) {
+  constructor(x,y,low,high,steps) {
   this.x = x;
   this.y = y;
   this.low = low;
   this.high = high;
   this.steps = steps;
   this.alpha = 0;
-  this.range = range;
+  this.range = 0;
   }
 
   fadeIn() {
@@ -317,15 +313,15 @@ class slider {
   show(value) {
  
   ctx.beginPath();
-  ctx.roundRect(this.x, this.y, 100, 25, 10); //x,y, size x, size y 
+  ctx.roundRect(this.x, this.y, 120, 32, 16); //x,y, size x, size y, radius
   ctx.fillStyle = "rgba(19,50,78," + this.alpha + ")";
   ctx.fill(); 
 
   ctx.fillStyle = "rgba(107,220,255," + this.alpha + ")";
-  ctx.font = "16px fixedSysEx";
-  ctx.fillText("<        >", this.x+50 ,this.y+17 )
+  ctx.font = "18px inconsolata";
+  ctx.fillText("←        →", this.x+60 ,this.y+20 )
   
-  ctx.fillText(value, this.x+50 ,this.y+17 )
+  ctx.fillText(value, this.x+60 ,this.y+20 )
   }
 }
 
@@ -343,7 +339,7 @@ function setCanvasSize() {
   ctx.textAlign = "center";
 
   scoreCtx.textAlign = "center";
-  scoreCtx.font = "16px fixedSysEx";
+  scoreCtx.font = "14px inconsolata";
 
   ctx.imageSmoothingEnabled = false;
 //  scoreCtx.imageSmoothingEnabled = false;
@@ -361,28 +357,28 @@ function setMenu() {
   highScoreText = new menuText("zero", midX , midY - 10 ) // text here is more of a palceholder.
   
   //tile size slider
-  tileSizeSlider = new slider(midX,midY-86,midX-41,midX+35,9)
+  tileSizeSlider = new slider(midX,midY-98,midX-52,midX+45,9) // x , y , start poin , end point , steps,
   tileSizeSlider.range = sliderArray(tileSizeSlider.steps,tileSizeSlider.high,tileSizeSlider.low); 
   tileSizeSlider.x = tileSizeSlider.range[ getIndex(tileSizeSteps, tileSize)] // need to find index of current tile size and match it to slider position cause mid game can call setmenu
   // tileSizeSlider.x = tileSizeSlider.range[ (tileSize / 10) -2 ] // the simple way
 
   //roundness slider
-  roundnessSlider = new slider(midX,midY-50,midX-41,midX+35,11)
+  roundnessSlider = new slider(midX,midY-50,midX-52,midX+45,11)
   roundnessSlider.range = sliderArray(roundnessSlider.steps,roundnessSlider.high,roundnessSlider.low); 
   roundnessSlider.x =  roundnessSlider.range[ getIndex( roundnessSteps, tileRoundness) ]
 
   //color slider
-  colorSlider = new slider(midX,midY-14,midX-65,midX+33,11) //x,y,lower limit in pixels from center of canvas ,higher limit, steps
+  colorSlider = new slider(midX,midY-8,midX-80,midX+45,11) //x,y,lower limit in pixels from center of canvas ,higher limit, steps
   colorSlider.range = sliderArray(colorSlider.steps,colorSlider.high,colorSlider.low);
   colorSlider.x = colorSlider.range[makeGrid.colors-2] //-2 cause colors start at two, and array starts at 0.
 
   //difficulty slider
-  difficultySlider = new slider(midX,midY+22,midX-33,midX+35,5) //x,y,lower limit in pixels from center of canvas ,higher limit, steps
+  difficultySlider = new slider(midX,midY+33,midX-40,midX+45,5) //x,y,lower limit in pixels from center of canvas ,higher limit, steps
   difficultySlider.range = sliderArray(difficultySlider.steps,difficultySlider.high,difficultySlider.low);
   difficultySlider.x = difficultySlider.range[difficulty.setting-1] //cause array starts at 0
 
    gameoverBox = new menu( midX , midY , 300,200,10,gameOverSprite,"gameOver",menufps); //x, y, frame width, frame height, number of frames, name of the frame sprite, fps = every n.th frame it should update
-   settingsBox = new menu( midX , midY , 300,450,16,settingsSprite,"settings",menufps);
+   settingsBox = new menu( midX , midY , 360,540,16,settingsSprite,"settings",menufps);
 }
 
 
@@ -390,7 +386,9 @@ function setTileRadius() { roundnessSteps = Array.from({ length: 11 }, (_,i) => 
 
 function makeGrid(res) {
 
-  let unmoveMinHeight = ySize // Math.floor(ySize * 0.8)
+    nextGrid.length = 0;
+    undoGrid.length = 0;
+    pathGrid.length = 0;
 
   if (!res) { makeGrid.colorLookup = makePalette(); } 
   makeGrid.loadAnimType = Math.floor(Math.random() * 3 )
@@ -964,11 +962,14 @@ function findBlock() { //find a block that spans from top to bottom.
 function setStart(x,y) {
 
   if (!pStart.length) { pStart = [x,y]; vPath[0] = new visualPath(x,y,1); vPath.length = 1; }
-  
-
   else if (!pEnd.length) { pEnd = [x,y]; vPath[1] = new visualPath(x,y,1); }
 
   if (pStart.length && pEnd.length) { 
+
+      if ( pStart[0] == pEnd[0] && pStart[1] == pEnd[1] ) { return }
+
+      console.log(pStart[0],pStart[1],pEnd[0],pEnd[1])
+        
       runPfind(pStart[0],pStart[1],pEnd[0],pEnd[1]) 
       pStart.length = 0;
       pEnd.length = 0;
@@ -1137,7 +1138,7 @@ function gameOver() {
       //  gameoverText.text = makeGrid.colorTiles ? "No more moves." : "All clear!"
       }
   //nextGrid[0][0].state == 0 is fixing a bug where for a brief moment, while tiles are "loading in" makeGrid.colorTiles is zero, triggering game over and this is probably the worst way to fix it
-  if ( (makeGrid.colorTiles == 0 && nextGrid[0][0].state == 0) || (difficulty.removal.value == 0 && nextMatrix.validClusterCount == makeGrid.colorTiles) ) { setOver(); return; }
+  if ( makeGrid.colorTiles == 0 || (difficulty.removal.value == 0 && nextMatrix.validClusterCount == makeGrid.colorTiles)) { setOver(); return; }
 
     switch (difficulty.setting) {
     case 2:
@@ -1303,18 +1304,20 @@ if (moveSlider.called) {
 
   switch (activeSlider) {
 
-     case 1: animeScale = animeScaleSteps[newtileSize];
+     case 1: animeScale = animeScaleSteps[newtileSize]; //tilesize
              tileSize = newtileSize;
+             vPath.length = 0;
              setCanvasSize();
              nextGrid.length = ySize;
              setMenu();
              setTileRadius();
              tileRoundness = roundnessSteps[ getIndex(roundnessSlider.range, roundnessSlider.x) ];                 
      case 3: 
-            undoValues.valid = 0;
+            undoValues.valid = 0; //color
             difficulty.removal = { value:0,color:0 } 
             highScore.totalScore = 0;
             writeScore.score = 0;
+            vPath.length = 0;
             resetTileCount();
             makeGrid();
             nextMatrix();
@@ -1342,28 +1345,28 @@ function SliderSettings(e) {
 
      if(settingsBox.state == 2)  {
 
-        if (coords.x > colorSlider.x && coords.y > colorSlider.y  && coords.x < colorSlider.x+100 && coords.y < colorSlider.y+25) {  //colors slider
+        if (coords.x > colorSlider.x && coords.y > colorSlider.y  && coords.x < colorSlider.x+120 && coords.y < colorSlider.y+32) {  //colors slider
                  
             assignEvent();
             startOffset = colorSlider.x - coords.x // need to calcualte the offset of the cursor on the slider box, so its snaps to a correct location 
             activeSlider = 3;
             }
 
-        if (coords.x > difficultySlider.x && coords.y > difficultySlider.y  && coords.x < difficultySlider.x+100 && coords.y < difficultySlider.y+25) {
+        if (coords.x > difficultySlider.x && coords.y > difficultySlider.y  && coords.x < difficultySlider.x+120 && coords.y < difficultySlider.y+32) {
 
             assignEvent();
             startOffset = difficultySlider.x - coords.x        
             activeSlider = 4;
         }
 
-        if (coords.x > roundnessSlider.x && coords.y > roundnessSlider.y  && coords.x < roundnessSlider.x+100 && coords.y < roundnessSlider.y+25) { 
+        if (coords.x > roundnessSlider.x && coords.y > roundnessSlider.y  && coords.x < roundnessSlider.x+120 && coords.y < roundnessSlider.y+32) { 
 
             assignEvent();
             startOffset = roundnessSlider.x - coords.x        
             activeSlider = 2;
         }
 
-        if (coords.x > tileSizeSlider.x && coords.y > tileSizeSlider.y  && coords.x < tileSizeSlider.x+100 && coords.y < tileSizeSlider.y+25) { 
+        if (coords.x > tileSizeSlider.x && coords.y > tileSizeSlider.y  && coords.x < tileSizeSlider.x+120 && coords.y < tileSizeSlider.y+32) { 
 
             assignEvent();
             startOffset = tileSizeSlider.x - coords.x        
@@ -1485,6 +1488,8 @@ function checkSession() {
 function newGame() { // formally known as reset tiles
 
     assingEventListener("none");
+
+    vPath.length = 0;
     undoValues.valid = 0
     difficulty.removal = { value:0,color:0 } 
     highScore.totalScore = 0;
@@ -1525,6 +1530,8 @@ function resetTiles() { // formally known as default
 
   assingEventListener("none");
 
+  vPath.length = 0;
+
   undoValues.valid = 0;
   difficulty.removal = { value:0,color:0 } 
 
@@ -1550,8 +1557,9 @@ function doneResizing() {
   // location.reload();
   assingEventListener("none");
 
-  undoValues.valid = 0  
-  difficulty.removal = { value:0,color:0 } 
+  vPath.length = 0;
+  undoValues.valid = 0;
+  difficulty.removal = { value:0,color:0 };
   highScore.totalScore = 0;
   writeScore.score = 0;
 
