@@ -16,6 +16,8 @@
 
   const pathGrid = [];
   const vPath = [];
+  var pStart = [];
+  var pEnd = [];
 
   var resizeId; //window size
   var undoValues = {};
@@ -753,7 +755,7 @@ function gameClick(e) {
   let y = Math.trunc((e.clientY - canvas.offsetTop + window.pageYOffset) / tileSize) //}
   
   if (nextGrid[x][y].state && nextGrid[x][y].color != 14 ) { nextClick(x,y); return; }
-  if (y && !nextGrid[x][y].state) { runPfind(x,y); }
+  if (!nextGrid[x][y].state) { setStart(x,y); }
 
 }
 
@@ -959,34 +961,38 @@ function findBlock() { //find a block that spans from top to bottom.
       }      
 }
 
+function setStart(x,y) {
 
-function runPfind(ex,ey) {
+  if (!pStart.length) { pStart = [x,y]; vPath[0] = new visualPath(x,y,1); vPath.length = 1; }
+  
 
-  let startCandidate = [];
-  vPath.length = 0;
+  else if (!pEnd.length) { pEnd = [x,y]; vPath[1] = new visualPath(x,y,1); }
+
+  if (pStart.length && pEnd.length) { 
+      runPfind(pStart[0],pStart[1],pEnd[0],pEnd[1]) 
+      pStart.length = 0;
+      pEnd.length = 0;
+      } 
+}
+
+function runPfind(sx,sy,ex,ey) {
 
   for (let x = 0; x < xSize; x++) {
    for (let y = 0; y < ySize; y++) {
 
    if (nextGrid[x][y].state) { pathGrid[x][y].walkable = false }
    else { pathGrid[x][y].walkable = true }
-
-   if (!y && !nextGrid[x][y].state) { startCandidate.push(x) }
    }}
-
-   while (startCandidate.length) {
-
-      const path = aStar(pathGrid, startCandidate[0], 0, ex, ey);
+      console.log(sx, sy, ex, ey)
+      const path = aStar(pathGrid, sx, sy, ex, ey);
+      
       if (path) {
 
-          console.log("Path found:");
-          console.log(path);
+      vPath.length = 0;
 
-        for (let i = 0; i < path.length; i++) {
-            vPath[i] = new visualPath( path[i].row , path[i].col, 1 ) }
-            return; } 
-      else { startCandidate.shift() }
-      }
+      for (let i = 0; i < path.length; i++) {
+      vPath[i] = new visualPath( path[i].row , path[i].col, 1 ) }
+      } 
 }
 
 function aStar(grid,startx,starty,endx,endy) {
