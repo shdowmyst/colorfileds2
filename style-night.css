@@ -9,9 +9,9 @@
     }
 
     @font-face {
-    font-smooth: never;
-    font-family: fixedSysEx;
-    src: url(FSEX300.ttf);
+    font-smooth: auto;
+    font-family: inconsolata;
+    src: url(Inconsolata_SemiExpanded-Bold.ttf);
 }
     
     #gameField, #scoreField {
