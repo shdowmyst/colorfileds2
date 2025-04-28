@@ -41,7 +41,8 @@
   writeScore.score = 0;
   difficulty.removal = { value:100,color:0 }
   difficulty.setting = 1; // 1: every 3 tile let you remove a single one. //2 same color as last 3 tiles //3 removes limited by number of colors //4 same, but also limited by color  last 3tile //5 no removes at all.
-  difficulty.unmove = 1; // unmovable tiles
+  difficulty.fixedTiles = 1; // unmovable tiles, fixed tiles, tiles that dont fall with a better name
+  difficulty.permanentTiles = 0; //tiles that cant be removed.
   moveSlider.called = 0;
  //menu stuff
   var gameoverBox, settingsBox, gameoverText, roundnessSteps, tileSizeSlider, roundnessSlider, colorSlider, difficultySlider;
@@ -51,7 +52,7 @@
   //const tileColors = ["#6BDCFF","#FFCA57","#B67E5C","#876047","#FFF570","#4ED06A","#42AE57","#7AFFF0","#6BDCFF","#4B80AF","#FF7A88","#EC5E7C","#804B79","#151515","#fafafa"]
   //const tileColors = ["#5c9cb0","#aa8d4b","#6e4d3b","#402d22","#b1ab60","#378146","#275f31","#69b2aa","#5c9cb0","#2e4863","#b26971","#9c4b5c","#3b2437","#151515","#cfcfcf"]
   
-   const tileColors = ["#439b99","#c98356","#6a4132","#39251d","#caba7d","#2a885f","#1e5b3f","#4eceb3","#439b99","#243d42","#e4514c","#b6383a","#50333a","#151515","#f4f4dc"]
+   const tileColors = ["#439b99","#c98356","#6a4132","#39251d","#caba7d","#2a885f","#1e5b3f","#4eceb3","#439b99","#243d42","#e4514c","#b6383a","#50333a","#343434","#f4f4dc"]
 
 
   /* colors:
@@ -104,8 +105,13 @@ class tile {
   if (this.rx > this.nx) {this.rx = Math.max( this.rx - animeScale, this.nx); } //right to left - default
   if (this.rx < this.nx) {this.rx = Math.min( this.rx + animeScale, this.nx); } //left to right
 
-  if (this.ry != this.ny) {this.ry = Math.min( this.ry + animeScale, this.ny); }
+  if (this.ry > this.ny) {this.ry = Math.max( this.ry - animeScale, this.ny); } //down
+  if (this.ry < this.ny) {this.ry = Math.min( this.ry + animeScale, this.ny); } //up
+
   if (this.ry == this.ny && this.rx == this.nx) { this.state = 3 }
+
+  //if (this.ry != this.ny) {this.ry = Math.min( this.ry + animeScale, this.ny); }
+  //if (this.ry == this.ny && this.rx == this.nx) { this.state = 3 }
   }
 
   loadTiles() {
@@ -399,9 +405,10 @@ function makeGrid(res) {
     pathGrid[x] = []; // only do tis if white tiles are active
     for (let y = 0; y < ySize; y++) {
      nextGrid[x][y] = new tile(x,y,x,y,makeGrid.colorLookup[Math.floor(Math.random() * makeGrid.colors)],4) // rx,ry,nx,ny,color,state
-     
-     if ( difficulty.unmove ) { pathGrid[x][y] = { row: x, col: y, walkable: true, gCost: Infinity, hCost: Infinity, fCost: Infinity, parent: null }
-                              if (Math.random() < 0.15 ) {  nextGrid[x][y].color = 14; } }
+     pathGrid[x][y] = { row: x, col: y, walkable: true, gCost: Infinity, hCost: Infinity, fCost: Infinity, parent: null }
+
+     if ( difficulty.fixedTiles && Math.random() < 0.15 ) {  nextGrid[x][y].color = 14; }
+     if ( difficulty.permanentTiles && Math.random() < 0.15 ) { nextGrid[x][y].color = 13; }
      }
    }
 
@@ -548,32 +555,38 @@ function roundCorners() {
   }
 }
 
+
+var busy = true;
+
 function renderTiles() {
+  if (!busy) { requestAnimationFrame(renderTiles); return; }
+  busy = false;
 
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
    for (let x = 0; x < xSize; x++) {
     for (let y = 0; y < ySize; y++) {
-      
+  
       let thisTile = nextGrid[x][y];
-      if (thisTile.despawn.state) { thisTile.despawnTile() }
+      if (thisTile.despawn.state) { thisTile.despawnTile(); busy = true;; }
 
       switch (thisTile.state) {
 //    case 6: thisTile.despawnWhiteTile();thisTile.show(); break;
-      case 5: thisTile.unLoadTiles();thisTile.show(); break; //disappearing after reset
-      case 4: thisTile.loadTiles();thisTile.show(); break; //anim at game start
-      case 3: thisTile.show(); break; //idle or unmovable
-      case 2: thisTile.moveTile();thisTile.show(); break; //moving      
+      case 5: thisTile.unLoadTiles();thisTile.show(); busy = true; break; //disappearing after reset
+      case 4: thisTile.loadTiles();thisTile.show(); busy = true; break; //anim at game start
+      case 3: thisTile.show(); break; //idle
+      case 2: thisTile.moveTile();thisTile.show(); busy = true; break; //moving
   //  case 1: thisTile.scaleTile();thisTile.show(x,y); break; //disappearing after being clicked on
       }
       // thisTile.debug(x,y);
-      if (thisTile.color == 14) { thisTile.whiteTileCenter() }
+      if (thisTile.color == 14) { thisTile.whiteTileCenter() }      
+      //console.log(thisTile.state)
       }}
 
       for (let i = 0; i < vPath.length; i++) {
         
         switch (vPath[i].state) {
-        case 1: vPath[i].loadPath(); vPath[i].show(); break;
+        case 1: vPath[i].loadPath(); vPath[i].show(); busy = true; break;
         case 2: vPath[i].show(); break;
         }}
 
@@ -581,20 +594,23 @@ function renderTiles() {
         switch (gameoverBox.state) {
         case 1: gameoverBox.playForward(); 
                 gameoverText.fadeIn(); 
-                gameoverText.show(); 
+                gameoverText.show();
+                busy = true
                 break;
         
         case 2: gameoverBox.show(); 
                 gameoverText.show(); 
                 highScoreText.fadeIn(); 
-                highScoreText.show("score:" + writeScore.score ); 
+                highScoreText.show("score:" + writeScore.score );
+                busy = true
                 break;
         
         case 3: gameoverBox.playBackward(); 
                 gameoverText.fadeOut(); 
                 highScoreText.fadeOut(); 
-                gameoverText.show(); 
-                break;
+                gameoverText.show();
+                busy = true
+                break;       
         }
 
         switch (settingsBox.state) { //everything shown on settings screen is here
@@ -603,13 +619,15 @@ function renderTiles() {
                   difficultySlider.fadeIn(); difficultySlider.show(difficulty.setting);
                   roundnessSlider.fadeIn(); roundnessSlider.show(tileRoundness);
                   tileSizeSlider.fadeIn(); tileSizeSlider.show(newtileSize);
+                  busy = true
                   break;
 
           case 2: settingsBox.show(); //stays on
-                    colorSlider.show(makeGrid.colors);
-                    difficultySlider.show(difficulty.setting);
-                     roundnessSlider.show(tileRoundness);
-                     tileSizeSlider.show(newtileSize)
+                  colorSlider.show(makeGrid.colors);
+                  difficultySlider.show(difficulty.setting);
+                  roundnessSlider.show(tileRoundness);
+                  tileSizeSlider.show(newtileSize)
+                  busy = true
                   break;
 
           case 3: settingsBox.playBackward(); //fades out
@@ -617,8 +635,8 @@ function renderTiles() {
                   difficultySlider.fadeOut(); difficultySlider.show(difficulty.setting);
                   roundnessSlider.fadeOut(); roundnessSlider.show(tileRoundness);
                   tileSizeSlider.fadeOut(); tileSizeSlider.show(newtileSize);
+                  busy = true
                   break;
-            
           }
                
      //  clickBoxHelper();
@@ -627,7 +645,7 @@ function renderTiles() {
 
      writeScore();
 
-  requestAnimationFrame(renderTiles) 
+requestAnimationFrame(renderTiles);
 }
 
 
@@ -708,7 +726,7 @@ function Highlight(e) { //Highlight the current tile
 }
 */
 
-function despawnUnmovable() {
+function despawnUnmovable() { //despawns white tiles when no valid tiles touching them
 
     let remove = [];
     var pass = [];
@@ -752,9 +770,8 @@ function gameClick(e) {
   let x = Math.trunc((e.clientX - canvas.offsetLeft + window.pageXOffset) / tileSize) //, 
   let y = Math.trunc((e.clientY - canvas.offsetTop + window.pageYOffset) / tileSize) //}
   
-  if (nextGrid[x][y].state && nextGrid[x][y].color != 14 ) { nextClick(x,y); return; }
+  if (nextGrid[x][y].state && nextGrid[x][y].color != 14 && nextGrid[x][y].color != 13 ) { nextClick(x,y); return; }
   if (!nextGrid[x][y].state) { setStart(x,y); }
-
 }
 
 nextClick.left = 1
@@ -832,7 +849,7 @@ function nextClick(u,v) {
 
 //findEmptyColl();
 
-  function findEmptyColl() { //find the and empty row, used when no white tiles are present.
+  function findEmptyColl() { //find the and empty column, used when no white tiles are present.
     
     let leftSide;
     let rightSide;
@@ -905,16 +922,44 @@ function nextClick(u,v) {
   }
 
 
-//    despawnUnmovable(); // setTimeout(despawnUnmovable, 1600)
+//  despawnUnmovable(); // setTimeout(despawnUnmovable, 1600)
     difficulty(score,thisColor); //calcualte removes
     nextMatrix();
     gameOver();
     roundCorners();
-    // gameOver(); //check  if its end of the game.
     if (score > 1) { highScore(score) } //calculate score
+    busy = true;
 }
 
-function blockMatrix() {
+
+//const raiseTimer = setInterval(raiseTiles, 4000);
+//clearInterval(raiseTimer); 
+
+function raiseTiles() { //raises the last row for an endless mode.
+
+     for (let x = 0; x < xSize; x++) {
+      for (let y = 0; y < ySize; y++) {
+
+      if (y < ySize-1) {
+       nextGrid[x][y].color = nextGrid[x][ y+1 ].color
+       nextGrid[x][y].state = nextGrid[x][ y+1 ].state == 0 ? 0 : 2;
+       nextGrid[x][y].ry = nextGrid[x][ y+1 ].ry
+       nextGrid[x][y].rx = nextGrid[x][ y+1 ].rx
+       }
+       else {
+          nextGrid[x][y] = new tile(x,y,x,y,makeGrid.colorLookup[Math.floor(Math.random() * makeGrid.colors)],4) // rx,ry,nx,ny,color,state
+          nextGrid[x][y].size = tileSize * 0.7
+     if ( difficulty.fixedTiles  && Math.random() < 0.15 ) {  nextGrid[x][y].color = 14; }
+     if ( difficulty.permanentTiles && Math.random() < 0.15 ) { nextGrid[x][y].color = 13; }
+       }   
+    }}
+
+    nextMatrix();
+    roundCorners();
+    busy = true;
+ }
+
+function blockMatrix() { //a block consist of touching valid tiles.
 
     function goBack(leftBlock,upBlock,cx) {
 
@@ -946,7 +991,7 @@ function blockMatrix() {
     }
 }
 
-function findBlock() { //find a block that spans from top to bottom.
+function findBlock() { //find a block that spans from top to bottom. currently incomplete
 
      let blockTop = [];
      let blockBottom = [];
@@ -959,14 +1004,45 @@ function findBlock() { //find a block that spans from top to bottom.
       }      
 }
 
-function setStart(x,y) {
+function dropTiles() {
+
+   for (let x = 0; x < xSize; x++) {
+    for (let y = 0, valid = 0; y < ySize; y++) {
+    
+      if (nextGrid[x][y].state) { valid++ }
+      if (nextGrid[x][y].color == 14) { valid = 0; } // inmovable tiles, set condition to something, state 6, color 20 etc
+
+      if (nextGrid[x][y].state == 0) {
+
+          let to = y-valid
+          let from = y;
+
+            while (from > to) {
+            
+            nextGrid[x][from].color = nextGrid[x][ from-1 <= 0 ? 0 : from-1 ].color;
+            nextGrid[x][from].ry = nextGrid[x][ from-1 <= 0 ? 0 : from-1 ].ry
+            nextGrid[x][from].state = 2;
+            from--
+            }
+        
+         nextGrid[x][y-valid].state = 0;
+         nextGrid[x][y-valid].color = 0;
+         }
+        }
+       }
+  nextMatrix();
+  roundCorners();
+  busy = true;
+}
+
+function setStart(x,y) { //and end
 
   if (!pStart.length) { pStart = [x,y]; vPath[0] = new visualPath(x,y,1); vPath.length = 1; }
   else if (!pEnd.length) { pEnd = [x,y]; vPath[1] = new visualPath(x,y,1); }
 
   if (pStart.length && pEnd.length) { 
 
-      if ( pStart[0] == pEnd[0] && pStart[1] == pEnd[1] ) { return }
+      if ( pStart[0] == pEnd[0] && pStart[1] == pEnd[1] ) { pStart.length = 0; pEnd.length = 0; return }
 
       console.log(pStart[0],pStart[1],pEnd[0],pEnd[1])
         
@@ -974,6 +1050,7 @@ function setStart(x,y) {
       pStart.length = 0;
       pEnd.length = 0;
       } 
+      busy = true;
 }
 
 function runPfind(sx,sy,ex,ey) {
@@ -992,8 +1069,17 @@ function runPfind(sx,sy,ex,ey) {
       vPath.length = 0;
 
       for (let i = 0; i < path.length; i++) {
-      vPath[i] = new visualPath( path[i].row , path[i].col, 1 ) }
-      } 
+
+      let x = path[i].row; let y = path[i].col;
+        
+      nextGrid[x][y] = new tile(x,y,x,y,makeGrid.colorLookup[ Math.floor(Math.random() * makeGrid.colors) ],4)
+       } 
+      //vPath[i] = new visualPath( path[i].row , path[i].col, 1 ) }
+      // Math.floor(Math.random() * makeGrid.colors)
+      }
+setTimeout(dropTiles, 1600)
+nextMatrix();
+roundCorners();
 }
 
 function aStar(grid,startx,starty,endx,endy) {
@@ -1099,7 +1185,7 @@ function reconstructPath(endNode) {
 }
 
  
-function undo() {
+function undo() { //needs to add paths to this
 
     if (!gameoverBox.state && undoValues.valid) {
 
@@ -1126,6 +1212,7 @@ function undo() {
         }
       }
  // nextMatrix(); not much point calling it, since its the same.
+busy = true;
 }
 
 function gameOver() {
@@ -1215,6 +1302,7 @@ function rightClick(e) { //0 invisible, 1 opening anim, 2 open, 3 close anim
     assingEventListener("game");
     gameOver(); 
     }
+    busy = true;
 }
 
 
@@ -1240,9 +1328,10 @@ function gameOverClick(e) {
       settingsBox.state = 1; // 1 intro, 2 stay, 3 outro
       gameoverBox.state = 3; //gameover outro
     }
+    busy = true;
 }
 
-function clickBoxHelper() {
+function clickBoxHelper() { //temporary function to help visualize a button
 
   let x = ctx.canvas.width / 2
   let y = ctx.canvas.height / 2
@@ -1306,7 +1395,11 @@ if (moveSlider.called) {
 
      case 1: animeScale = animeScaleSteps[newtileSize]; //tilesize
              tileSize = newtileSize;
+            
              vPath.length = 0;
+             pStart.length = 0;
+             pEnd.length = 0;
+            
              setCanvasSize();
              nextGrid.length = ySize;
              setMenu();
@@ -1317,7 +1410,11 @@ if (moveSlider.called) {
             difficulty.removal = { value:0,color:0 } 
             highScore.totalScore = 0;
             writeScore.score = 0;
+            
             vPath.length = 0;
+            pStart.length = 0;
+            pEnd.length = 0;
+            
             resetTileCount();
             makeGrid();
             nextMatrix();
@@ -1451,7 +1548,7 @@ function clickConfirm() { //flashes a blue box over clicked button
         
         }
 }
-
+/*
 function settings(id) {
   
     if (id === "difficulty") { difficulty(0,difficulty.removal.color); }
@@ -1484,12 +1581,15 @@ function checkSession() {
 
     }
 }
-
+*/
 function newGame() { // formally known as reset tiles
 
     assingEventListener("none");
 
     vPath.length = 0;
+    pStart.length = 0;
+    pEnd.length = 0;
+    
     undoValues.valid = 0
     difficulty.removal = { value:0,color:0 } 
     highScore.totalScore = 0;
@@ -1531,6 +1631,8 @@ function resetTiles() { // formally known as default
   assingEventListener("none");
 
   vPath.length = 0;
+  pStart.length = 0;
+  pEnd.length = 0;
 
   undoValues.valid = 0;
   difficulty.removal = { value:0,color:0 } 
@@ -1558,6 +1660,9 @@ function doneResizing() {
   assingEventListener("none");
 
   vPath.length = 0;
+  pStart.length = 0;
+  pEnd.length = 0;
+
   undoValues.valid = 0;
   difficulty.removal = { value:0,color:0 };
   highScore.totalScore = 0;
