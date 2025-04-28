@@ -25,7 +25,7 @@
 // at 144 fps, 50 px tile size, anime scale: 2.2 is ideal. so in 1 second a tile moves 317 px, or 317 / 1000 = 0.317 px / ms
 
   makeGrid.colorLookup = [];
-  makeGrid.colors = 6; //amount of colors by default, for max colors see line 930ish
+  makeGrid.colors = 2; //amount of colors by default, for max colors see line 930ish
   
   //these updated by nextMatrix only.
   makeGrid.loadTiles = 0;  //used to for load / unload animation
