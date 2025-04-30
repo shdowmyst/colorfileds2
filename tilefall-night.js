@@ -15,17 +15,17 @@
   const undoGrid = [];
 
   const pathGrid = [];
-  const vPath = [];
+  const vPath = []; //storing path's visual
   var pStart = [];
   var pEnd = [];
 
   var resizeId; //window size
   var undoValues = {};
 
-// at 144 fps, 50 px tile size, anime scale: 2.2 is ideal. so in 1 second a tile moves 317 px, or 317 / 1000 = 0.317 px / ms
+// at 144 fps, 50 px tile size, anime scale: 2.2 looks okay. so in 1 second a tile moves 317 px, or 317 / 1000 = 0.317 px / ms
 
   makeGrid.colorLookup = [];
-  makeGrid.colors = 2; //amount of colors by default, for max colors see line 930ish
+  makeGrid.colors = 6; //amount of colors by default, for max colors see line 930ish
   
   //these updated by nextMatrix only.
   makeGrid.loadTiles = 0;  //used to for load / unload animation
@@ -39,10 +39,14 @@
   nextMatrix.validClusterCount = 0;
   highScore.totalScore = 0;
   writeScore.score = 0;
+  
   difficulty.removal = { value:100,color:0 }
   difficulty.setting = 1; // 1: every 3 tile let you remove a single one. //2 same color as last 3 tiles //3 removes limited by number of colors //4 same, but also limited by color  last 3tile //5 no removes at all.
-  difficulty.fixedTiles = 1; // unmovable tiles, fixed tiles, tiles that dont fall with a better name
-  difficulty.permanentTiles = 0; //tiles that cant be removed.
+  
+  difficulty.fixedTiles = true; // unmovable tiles, fixed tiles, tiles that dont fall with a better name
+  difficulty.permanentTiles = false; //tiles that cant be removed.
+  difficulty.verticalMove = true;
+
   moveSlider.called = 0;
  //menu stuff
   var gameoverBox, settingsBox, gameoverText, roundnessSteps, tileSizeSlider, roundnessSlider, colorSlider, difficultySlider;
@@ -98,7 +102,8 @@ class tile {
     this.bottomleft = 0;
     this.bottomright = 0;
     this.despawn = 0; //store previous color for despawn anim
-    this.block = 0;
+    this.block = 0; //a continous block of tiles based on state
+    this.reload = false; //tiles that playing reolad animation
     }
   
   moveTile() {
@@ -112,6 +117,12 @@ class tile {
 
   //if (this.ry != this.ny) {this.ry = Math.min( this.ry + animeScale, this.ny); }
   //if (this.ry == this.ny && this.rx == this.nx) { this.state = 3 }
+  }
+
+  reoladTiles() {
+  if (this.size != tileSize && Math.random() > 0.8 ) { this.size = Math.min(this.size + animeScale, tileSize) }
+  if (this.size == tileSize) { this.reload = false; convertTiles.loadTiles--; }
+  if (convertTiles.loadTiles == 0) { dropTiles(); }
   }
 
   loadTiles() {
@@ -200,6 +211,8 @@ class visualPath {
     this.state = state; // 0: hidden, removed, 1: needs to fade out, 2: active, 3: load in anim at start, 4: load out anim, at end.
     this.size = 0;
     this.fullsize = tileSize / 4;
+    this.x = rx;
+    this.y = ry;
   }
 
   loadPath() {
@@ -325,9 +338,9 @@ class slider {
 
   ctx.fillStyle = "rgba(107,220,255," + this.alpha + ")";
   ctx.font = "18px inconsolata";
-  ctx.fillText("←        →", this.x+60 ,this.y+20 )
+  ctx.fillText("«        »", this.x+60 ,this.y+20 )
   
-  ctx.fillText(value, this.x+60 ,this.y+20 )
+  ctx.fillText(value, this.x+60 ,this.y+22 )
   }
 }
 
@@ -568,13 +581,14 @@ function renderTiles() {
     for (let y = 0; y < ySize; y++) {
   
       let thisTile = nextGrid[x][y];
-      if (thisTile.despawn.state) { thisTile.despawnTile(); busy = true;; }
+      if (thisTile.despawn.state) { thisTile.despawnTile(); busy = true; }
+      if (thisTile.reload) { thisTile.reoladTiles(); busy = true; }
 
       switch (thisTile.state) {
-//    case 6: thisTile.despawnWhiteTile();thisTile.show(); break;
       case 5: thisTile.unLoadTiles();thisTile.show(); busy = true; break; //disappearing after reset
       case 4: thisTile.loadTiles();thisTile.show(); busy = true; break; //anim at game start
       case 3: thisTile.show(); break; //idle
+      //case 6: thisTile.midGameLoadTiles(); thisTile.show(); busy = true; break;
       case 2: thisTile.moveTile();thisTile.show(); busy = true; break; //moving
   //  case 1: thisTile.scaleTile();thisTile.show(x,y); break; //disappearing after being clicked on
       }
@@ -770,8 +784,10 @@ function gameClick(e) {
   let x = Math.trunc((e.clientX - canvas.offsetLeft + window.pageXOffset) / tileSize) //, 
   let y = Math.trunc((e.clientY - canvas.offsetTop + window.pageYOffset) / tileSize) //}
   
-  if (nextGrid[x][y].state && nextGrid[x][y].color != 14 && nextGrid[x][y].color != 13 ) { nextClick(x,y); return; }
-  if (!nextGrid[x][y].state) { setStart(x,y); }
+  if ( nextGrid[x][y].state && nextGrid[x][y].color < 13 ) { nextClick(x,y); return }
+  if ( vPath.length && vPath.some(e => e.x == x && e.y == y) ) { convertVpath(); return  } 
+  if ( nextGrid[x][y].state == 0 ) { setStart(x,y); return }
+  if ( nextGrid[x][y].color == 14) { convertTiles(x,y) }
 }
 
 nextClick.left = 1
@@ -799,22 +815,14 @@ function nextClick(u,v) {
     }
 
     //undo values
-
-    undoValues = structuredClone(difficulty.removal) //save last single remove value and color for undo
-    undoValues.totalScore = structuredClone(highScore.totalScore);
-    undoValues.writeScore = structuredClone(writeScore.score)
-    undoValues.colorTiles = structuredClone(makeGrid.colorTiles)
-    undoValues.left = structuredClone(nextClick.left);
-    undoValues.right = structuredClone(nextClick.right);
-    undoValues.valid = 1;
+    updateUndoValues(thisCluster);
 
    //vertical moving
 
    for (let x = 0; x < xSize; x++) {
     for (let y = 0, valid = 0; y < ySize; y++) {
 
-      undoGrid[x][y] = structuredClone(nextGrid[x][y]); //store previous grid for undo.
-      undoValues.undoCluster = thisCluster //store last cluster that's actually valid
+      undoGrid[x][y] = structuredClone(nextGrid[x][y]); //store previous grid for undo.      
     
       if (nextGrid[x][y].state && nextGrid[x][y].cluster != thisCluster ) { valid++ }
       if (nextGrid[x][y].color == 14) { valid = 0; } // inmovable tiles, set condition to something, state 6, color 20 etc
@@ -847,7 +855,7 @@ function nextClick(u,v) {
 
 //despawnUnmovable();
 
-//findEmptyColl();
+if (difficulty.verticalMove) { findEmptyColl(); }
 
   function findEmptyColl() { //find the and empty column, used when no white tiles are present.
     
@@ -920,7 +928,6 @@ function nextClick(u,v) {
         }
   findEmptyColl();
   }
-
 
 //  despawnUnmovable(); // setTimeout(despawnUnmovable, 1600)
     difficulty(score,thisColor); //calcualte removes
@@ -1004,7 +1011,74 @@ function findBlock() { //find a block that spans from top to bottom. currently i
       }      
 }
 
-function dropTiles() {
+convertTiles.loadTiles = 0;
+function convertTiles(u,v) { //converts a cluster to different colored tiles (used to recolor white tiles)
+
+  function someRandomColor() { return makeGrid.colorLookup[ Math.floor(Math.random() * makeGrid.colors)] }
+  let thisTile = nextGrid[u][v];
+  let thisCluster = thisTile.cluster;
+  let color = someRandomColor();
+  let counter;
+  convertTiles.loadTiles = 0;
+
+  updateUndoValues(thisCluster);
+
+   for (let x = 0; x < xSize; x++) {
+    for (let y = 0; y < ySize; y++) {
+
+      undoGrid[x][y] = structuredClone(nextGrid[x][y]); //store previous grid for undo.
+      if (nextGrid[x][y].cluster == thisCluster) {
+
+          if ( Math.random() > 0.5 ) { color = someRandomColor(); }
+          
+          convertTiles.loadTiles++
+          nextGrid[x][y] = new tile(x,y,x,y,color,3,) //state,
+          nextGrid[x][y].size = tileSize * 0.6
+          nextGrid[x][y].reload = true;
+        }
+   }}
+busy = true;
+roundCorners();
+//setTimeout(dropTiles, 1600);
+//its possible to click the tile before nextmatrix done runing, so it acts as a cluster zero tile, which makes a weird flashing animation
+
+}
+
+function removeWhiteTiles(u,v) {
+
+  var thisTile = nextGrid[u][v];
+  var thisCluster = thisTile.cluster;
+
+   for (let x = 0; x < xSize; x++) {
+    for (let y = 0, valid = 0; y < ySize; y++) {
+    
+      if (nextGrid[x][y].state && nextGrid[x][y].cluster != thisCluster ) { valid++ }
+      if (nextGrid[x][y].color == 14 && nextGrid[x][y].cluster != thisCluster ) { valid = 0; } // inmovable tiles, set condition to something, state 6, color 20 etc
+
+      if (nextGrid[x][y].cluster == thisCluster || nextGrid[x][y].state == 0) {
+
+          let to = y-valid
+          let from = y;
+
+            while (from > to) {
+            
+            nextGrid[x][from].color = nextGrid[x][ from-1 <= 0 ? 0 : from-1 ].color;
+            nextGrid[x][from].ry = nextGrid[x][ from-1 <= 0 ? 0 : from-1 ].ry
+            nextGrid[x][from].state = 2;
+            from--
+            }
+        
+         nextGrid[x][y-valid].state = 0;
+         nextGrid[x][y-valid].color = 0;
+         }
+        }
+       }
+  nextMatrix();
+  roundCorners();
+  busy = true;
+}
+
+function dropTiles() { //drops folating tiles
 
    for (let x = 0; x < xSize; x++) {
     for (let y = 0, valid = 0; y < ySize; y++) {
@@ -1020,7 +1094,7 @@ function dropTiles() {
             while (from > to) {
             
             nextGrid[x][from].color = nextGrid[x][ from-1 <= 0 ? 0 : from-1 ].color;
-            nextGrid[x][from].ry = nextGrid[x][ from-1 <= 0 ? 0 : from-1 ].ry
+            nextGrid[x][from].ry = nextGrid[x][ from-1 <= 0 ? 0 : from-1 ].ry;
             nextGrid[x][from].state = 2;
             from--
             }
@@ -1053,6 +1127,20 @@ function setStart(x,y) { //and end
       busy = true;
 }
 
+function convertVpath() {
+
+  for (let i = 0, x,y; i < vPath.length; i++) {
+
+    x = vPath[i].x; y = vPath[i].y;
+    nextGrid[x][y] = new tile(x,y,x,y,14,4)
+    }
+
+  vPath.length = 0;
+  nextMatrix();
+  roundCorners();
+  busy = true;
+}
+
 function runPfind(sx,sy,ex,ey) {
 
   for (let x = 0; x < xSize; x++) {
@@ -1061,25 +1149,14 @@ function runPfind(sx,sy,ex,ey) {
    if (nextGrid[x][y].state) { pathGrid[x][y].walkable = false }
    else { pathGrid[x][y].walkable = true }
    }}
-      console.log(sx, sy, ex, ey)
+
       const path = aStar(pathGrid, sx, sy, ex, ey);
       
       if (path) {
-
       vPath.length = 0;
-
       for (let i = 0; i < path.length; i++) {
-
-      let x = path[i].row; let y = path[i].col;
-        
-      nextGrid[x][y] = new tile(x,y,x,y,makeGrid.colorLookup[ Math.floor(Math.random() * makeGrid.colors) ],4)
-       } 
-      //vPath[i] = new visualPath( path[i].row , path[i].col, 1 ) }
-      // Math.floor(Math.random() * makeGrid.colors)
+           vPath[i] = new visualPath(path[i].row, path[i].col,1)} 
       }
-setTimeout(dropTiles, 1600)
-nextMatrix();
-roundCorners();
 }
 
 function aStar(grid,startx,starty,endx,endy) {
@@ -1184,6 +1261,18 @@ function reconstructPath(endNode) {
   return path;
 }
 
+function updateUndoValues(cluster) {
+
+    undoValues = structuredClone(difficulty.removal) //save last single remove value and color for undo
+    undoValues.totalScore = structuredClone(highScore.totalScore);
+    undoValues.writeScore = structuredClone(writeScore.score)
+    undoValues.colorTiles = structuredClone(makeGrid.colorTiles)
+    undoValues.left = structuredClone(nextClick.left);
+    undoValues.right = structuredClone(nextClick.right);
+    undoValues.undoCluster = cluster //store last cluster that's actually valid
+    undoValues.valid = 1;
+
+}
  
 function undo() { //needs to add paths to this
 
@@ -1597,6 +1686,7 @@ function newGame() { // formally known as reset tiles
     makeGrid.loadTiles = 0;
     
    if ( makeGrid.colorTiles + makeGrid.blackTiles > 0 ) {
+
     
    for (let x = 0; x < xSize; x++) {
     for (let y = 0; y < ySize; y++) {
@@ -1611,6 +1701,7 @@ function newGame() { // formally known as reset tiles
      nextMatrix();
      roundCorners();
      }
+     busy = true;
 }
 
 
