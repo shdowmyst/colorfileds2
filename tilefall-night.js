@@ -15,9 +15,6 @@
   const undoGrid = [];
 
   const pathGrid = [];
-  const vPath = []; //storing path's visual
-  var pStart = [];
-  var pEnd = [];
 
   var resizeId; //window size
   var undoValues = {};
@@ -104,6 +101,7 @@ class tile {
     this.despawn = 0; //store previous color for despawn anim
     this.block = 0; //a continous block of tiles based on state
     this.reload = false; //tiles that playing reolad animation
+    this.acc = 0; //acceleration
     }
   
   moveTile() {
@@ -111,9 +109,9 @@ class tile {
   if (this.rx < this.nx) {this.rx = Math.min( this.rx + animeScale, this.nx); } //left to right
 
   if (this.ry > this.ny) {this.ry = Math.max( this.ry - animeScale, this.ny); } //down
-  if (this.ry < this.ny) {this.ry = Math.min( this.ry + animeScale, this.ny); } //up
+  if (this.ry < this.ny) {this.ry = Math.min( this.ry + animeScale + this.acc / 30, this.ny); this.acc++;  } //up
 
-  if (this.ry == this.ny && this.rx == this.nx) { this.state = 3 }
+  if (this.ry == this.ny && this.rx == this.nx) { this.state = 3; this.acc = 0 }
 
   //if (this.ry != this.ny) {this.ry = Math.min( this.ry + animeScale, this.ny); }
   //if (this.ry == this.ny && this.rx == this.nx) { this.state = 3 }
@@ -204,30 +202,37 @@ class tile {
 
 class visualPath {
 
-  constructor(rx,ry,state) {
+  constructor(rx,ry,state,color,start,cs) {
     this.rx = rx * tileSize; //rx = rendered X position, where the tile is shown.
     this.ry = ry * tileSize; //ry = rendered Y position
-    this.color = "#D9D9C3";
-    this.state = state; // 0: hidden, removed, 1: needs to fade out, 2: active, 3: load in anim at start, 4: load out anim, at end.
+    this.color = color // ?? "#D9D9C3";
+    this.state = state;
     this.size = 0;
     this.fullsize = tileSize / 4;
     this.x = rx;
     this.y = ry;
+    this.start = start ?? false; //starting or end block.-
+    this.cs = cs ?? 0; // color selector
   }
 
   loadPath() {
   if (this.size != this.fullsize) { this.size = Math.min(this.size + animeScale / 6, this.fullsize) }
-  if (this.size == this.fullsize) {this.state = 2; }
+  if (this.size == this.fullsize) { this.state = 2; }
+  }
+
+  unloadPath() {
+  if (this.size != this.fullsize / 10) { this.size = Math.max(this.size - animeScale / 6, 0) }
+  if (this.size <= 0) { this.state = 0; }
   }
 
   show() {
-  
   ctx.beginPath();
-  ctx.fillStyle = "#D9D9C3"
+  ctx.fillStyle = tileColors[this.color]
   let offset = (tileSize - this.size) / 2
   let roundness = tileRoundness / 4
   ctx.roundRect(this.rx + offset , this.ry + offset , this.size, this.size, roundness);
   ctx.fill();
+
   }
 }
 
@@ -597,13 +602,13 @@ function renderTiles() {
       //console.log(thisTile.state)
       }}
 
-      for (let i = 0; i < vPath.length; i++) {
+      for (let i = 0; i < combinedVpath.length; i++) {
         
-        switch (vPath[i].state) {
-        case 1: vPath[i].loadPath(); vPath[i].show(); busy = true; break;
-        case 2: vPath[i].show(); break;
+        switch (combinedVpath[i].state) {
+        case 1: combinedVpath[i].loadPath(); combinedVpath[i].show(); busy = true; break;
+        case 2: combinedVpath[i].show(); break;
+        case 3: combinedVpath[i].unloadPath(); combinedVpath[i].show(); busy = true; break;
         }}
-
 
         switch (gameoverBox.state) {
         case 1: gameoverBox.playForward(); 
@@ -784,10 +789,11 @@ function gameClick(e) {
   let x = Math.trunc((e.clientX - canvas.offsetLeft + window.pageXOffset) / tileSize) //, 
   let y = Math.trunc((e.clientY - canvas.offsetTop + window.pageYOffset) / tileSize) //}
   
+  if (!nextGrid[x][y].state) { pathLogicSelect(x,y); return }
+  if ( nextGrid[x][y].state && combinedVpath.some(e => e.x == x && e.y == y && e.state )) { console.log(" color select clicked"); return; }
   if ( nextGrid[x][y].state && nextGrid[x][y].color < 13 ) { nextClick(x,y); return }
-  if ( vPath.length && vPath.some(e => e.x == x && e.y == y) ) { convertVpath(); return  } 
-  if ( nextGrid[x][y].state == 0 ) { setStart(x,y); return }
-  if ( nextGrid[x][y].color == 14) { convertTiles(x,y) }
+  
+// if ( vPath.length && vPath.some(e => e.x == x && e.y == y) ) { convertVpath(); return }
 }
 
 nextClick.left = 1
@@ -825,7 +831,7 @@ function nextClick(u,v) {
       undoGrid[x][y] = structuredClone(nextGrid[x][y]); //store previous grid for undo.      
     
       if (nextGrid[x][y].state && nextGrid[x][y].cluster != thisCluster ) { valid++ }
-      if (nextGrid[x][y].color == 14) { valid = 0; } // inmovable tiles, set condition to something, state 6, color 20 etc
+      if (!nextGrid[x][y].state || nextGrid[x][y].color == 14) { valid = 0; } // inmovable tiles, set condition to something, state 6, color 20 etc
 
       if (nextGrid[x][y].cluster == thisCluster) {
 
@@ -853,9 +859,9 @@ function nextClick(u,v) {
         }
        }
 
-//despawnUnmovable();
+  //despawnUnmovable();
 
-if (difficulty.verticalMove) { findEmptyColl(); }
+  if (difficulty.verticalMove) { findEmptyColl(); }
 
   function findEmptyColl() { //find the and empty column, used when no white tiles are present.
     
@@ -890,7 +896,7 @@ if (difficulty.verticalMove) { findEmptyColl(); }
             nextGrid[x][y].state = nextGrid[ x-1 ][y].state == 0 ? 0 : 2;
             nextGrid[x][y].ry = nextGrid[ x-1 ][y].ry
             nextGrid[x][y].rx = nextGrid[ x-1 ][y].rx
-//          nextGrid[x][y].size = nextGrid[ x-1 ][y].size //first version despawn white tiles needed this only
+         // nextGrid[x][y].size = nextGrid[ x-1 ][y].size //first version despawn white tiles needed this only
 
             }
          else {
@@ -905,9 +911,9 @@ if (difficulty.verticalMove) { findEmptyColl(); }
 
   function moveRightSide(rightSide) { //this also could be one function, but does it even matter at this point...
 
-//   let offset = ySize - rightSide.length
-//   for (let y = offset; y < ySize; y++) {
-//   for (let x = rightSide[y - offset]; x < xSize; x++) {
+  //   let offset = ySize - rightSide.length
+  //   for (let y = offset; y < ySize; y++) {
+  //   for (let x = rightSide[y - offset]; x < xSize; x++) {
 
         for (let y = 0; y < ySize; y++) {
         for (let x = rightSide; x < xSize ; x++) {
@@ -917,7 +923,7 @@ if (difficulty.verticalMove) { findEmptyColl(); }
                 nextGrid[x][y].state = nextGrid[ x+1 ][y].state == 0 ? 0 : 2;
                 nextGrid[x][y].ry = nextGrid[ x+1 ][y].ry
                 nextGrid[x][y].rx = nextGrid[ x+1 ][y].rx
-//              nextGrid[x][y].size = nextGrid[ x+1 ][y].size
+            //  nextGrid[x][y].size = nextGrid[ x+1 ][y].size
                 }
              else {    
              nextGrid[x][y].state = 0;
@@ -929,8 +935,9 @@ if (difficulty.verticalMove) { findEmptyColl(); }
   findEmptyColl();
   }
 
-//  despawnUnmovable(); // setTimeout(despawnUnmovable, 1600)
+  //despawnUnmovable(); // setTimeout(despawnUnmovable, 1600)
     difficulty(score,thisColor); //calcualte removes
+  if (difficulty.fixedTiles) { dropTiles(); }
     nextMatrix();
     gameOver();
     roundCorners();
@@ -1109,45 +1116,139 @@ function dropTiles() { //drops folating tiles
   busy = true;
 }
 
-function setStart(x,y) { //and end
+/*
+state 1: no start and no end selected yet -> selector opens at start position;
+state 2: start cliked again (same pos) -> selector closes at start position, reset start;
 
-  if (!pStart.length) { pStart = [x,y]; vPath[0] = new visualPath(x,y,1); vPath.length = 1; }
-  else if (!pEnd.length) { pEnd = [x,y]; vPath[1] = new visualPath(x,y,1); }
+state 3: start selected, no end selected yet -> selector opens at end position;
+state 4: start selected, end clicked again -> selector closes at end position, reset end;
 
-  if (pStart.length && pEnd.length) { 
+state 4: start selected, end selected -> close both selector, look for path.
 
-      if ( pStart[0] == pEnd[0] && pStart[1] == pEnd[1] ) { pStart.length = 0; pEnd.length = 0; return }
+path found -> display path,
+path not found -> show start and end.
+path being clicked -> remove tiles at both end, clear end and start
+path not being clicked -> clear end and start
 
-      console.log(pStart[0],pStart[1],pEnd[0],pEnd[1])
-        
-      runPfind(pStart[0],pStart[1],pEnd[0],pEnd[1]) 
-      pStart.length = 0;
-      pEnd.length = 0;
-      } 
+
+*/
+
+  var pStart = [];
+  var pEnd = [];
+
+  var startColorSelect = [];
+  var endColorSelect = [];
+  var vPath = []; //storing path's visual
+  var combinedVpath = [];
+
+function pathLogicSelect(x,y) {
+
+  if (!pStart.length) { //no start or end
+
+      pStart = [x,y];
+      selectColor(x,y,startColorSelect);
+      console.log("set start");
       busy = true;
-}
+      return;
+      }
+  
+  if (pStart.length && pStart[0] == x && pStart[1] == y) { //start same as before
 
+    pStart.length = 0;
+    startColorSelect.forEach(e => e.state = 3)
+    vPath.forEach(e => e.state = 3)
+    console.log("start clicked again")
+    busy = true;
+    return;
+    }
+
+  if (pStart.length && !pEnd.length) { //there is a start, no end
+    
+      pEnd = [x,y]
+      selectColor(x,y,endColorSelect);
+      console.log("set end");
+      busy = true;
+      return;
+      }
+  
+  if (pEnd.length && pEnd[0] == x && pEnd[1] == y) { //end is same as before
+
+    pEnd.length = 0;
+    endColorSelect.forEach(e => e.state = 3)
+    vPath.forEach(e => e.state = 3)
+    console.log("end clicked again")
+    busy = true;
+    return;
+    }
+
+  if (combinedVpath.some(e => e.x == x && e.y == y && e.state && e.color < 13)) { convertVpath(); console.log("path clicked"); return }
+
+  if (pEnd.length && pStart.length) { //some other state 0 tile been clicked
+
+    pEnd.length = 0;
+    pStart.length = 0;
+    combinedVpath.forEach(e => e.state = 3)
+    console.log("some other state 0 tile been clicked")
+    busy = true;
+    return;
+    }
+
+  function selectColor(x,y,target) { //abusing object refrences
+
+     target[0] = new visualPath(x,y,1,14,true); //x,y, state, color, start, color select value
+     target.length = 1;
+     combinedVpath.length = 0;
+     let commonColor = [];
+
+     if (x && nextGrid[x-1][y].color)  { target.push( new visualPath(x-1,y,1, 14,false, nextGrid[x-1][y].color ));} //left
+     if (y && nextGrid[x][y-1].color)  { target.push( new visualPath(x,y-1,1, 14,false, nextGrid[x][y-1].color ));} //bottom
+ 
+     if (x < xSize-1 && nextGrid[x+1][y].color) { target.push( new visualPath(x+1,y,1, 14,false, nextGrid[x+1][y].color ));} //right
+     if (y < ySize-1 && nextGrid[x][y+1].color) { target.push( new visualPath(x,y+1,1, 14,false, nextGrid[x][y+1].color ));} //top
+
+     if ( pStart.length && pEnd.length ) { 
+
+        commonColor = startColorSelect.filter(startColor => endColorSelect.some(endColor => endColor.cs == startColor.cs && endColor.cs)) //there is probably a less cursed way to do this
+
+      runPfind(pStart[0],pStart[1],pEnd[0],pEnd[1], commonColor.length ? commonColor[0].cs : 13 );  console.log("start", pStart[0],pStart[1], "end", pEnd[0],pEnd[1],"common color:", 12 ) } //need to uncurse it
+
+    if ( target[1] ) { target[0].color = target[1].cs } //if there is any color tiles around, set the start / end color same as first color tile
+    if ( commonColor.length ) { target[0].color = commonColor[0].cs }
+    
+    combinedVpath = vPath.concat(startColorSelect,endColorSelect) // this merges references of vpath, startColorSelect and endColorSelect, changing them at any point will affect combinedVpath
+    //pColorTiles = combinedVpath.map(e =>({ x:e.x,y:e.y }))
+  }
+ }
+
+convertVpath.tiles = 0;
 function convertVpath() {
 
   for (let i = 0, x,y; i < vPath.length; i++) {
 
     x = vPath[i].x; y = vPath[i].y;
-    nextGrid[x][y] = new tile(x,y,x,y,14,4)
+    nextGrid[x][y] = new tile(x,y,x,y,vPath[i].color,4)
+    convertVpath.tiles++
     }
 
+  pStart.length = 0;
+  pEnd.length = 0;
+  startColorSelect.length = 0;
+  endColorSelect.length = 0;
   vPath.length = 0;
+  combinedVpath.length = 0;
+
   nextMatrix();
   roundCorners();
   busy = true;
 }
 
-function runPfind(sx,sy,ex,ey) {
+function runPfind(sx,sy,ex,ey,color) {
 
   for (let x = 0; x < xSize; x++) {
    for (let y = 0; y < ySize; y++) {
 
-   if (nextGrid[x][y].state) { pathGrid[x][y].walkable = false }
-   else { pathGrid[x][y].walkable = true }
+   if ( nextGrid[x][y].state ) { pathGrid[x][y].walkable = false }
+   else { pathGrid[x][y].walkable = true }   
    }}
 
       const path = aStar(pathGrid, sx, sy, ex, ey);
@@ -1155,7 +1256,7 @@ function runPfind(sx,sy,ex,ey) {
       if (path) {
       vPath.length = 0;
       for (let i = 0; i < path.length; i++) {
-           vPath[i] = new visualPath(path[i].row, path[i].col,1)} 
+           vPath[i] = new visualPath(path[i].row, path[i].col,1,color,false,0)} 
       }
 }
 
