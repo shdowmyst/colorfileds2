@@ -1177,7 +1177,7 @@ function pathLogicSelect(x,y) {
     return;
     }
     */
-  if (valid && pStart.length && !pEnd.length) { //there is a start, no end, set end
+  if (valid && pStart.length) { //there is a start, no end, set end // && !pEnd.length
     
       pEnd = [x,y]
       selectColor(x,y,endColorSelect);
