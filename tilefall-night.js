@@ -790,7 +790,7 @@ function gameClick(e) {
   let y = Math.trunc((e.clientY - canvas.offsetTop + window.pageYOffset) / tileSize) //}
   
   if (!nextGrid[x][y].state) { pathLogicSelect(x,y); return }
-  if ( nextGrid[x][y].state && combinedVpath.some(e => e.x == x && e.y == y && e.state )) { console.log(" color select clicked"); return; }
+  if ( nextGrid[x][y].state && combinedVpath.some(e => e.x == x && e.y == y && e.state )) { recolorPath(x,y); console.log("color select clicked"); return; }
   if ( nextGrid[x][y].state && nextGrid[x][y].color < 13 ) { nextClick(x,y); return }
   
 // if ( vPath.length && vPath.some(e => e.x == x && e.y == y) ) { convertVpath(); return }
@@ -1044,8 +1044,8 @@ function convertTiles(u,v) { //converts a cluster to different colored tiles (us
           nextGrid[x][y].reload = true;
         }
    }}
-busy = true;
-roundCorners();
+  busy = true;
+  roundCorners();
 //setTimeout(dropTiles, 1600);
 //its possible to click the tile before nextmatrix done runing, so it acts as a cluster zero tile, which makes a weird flashing animation
 
@@ -1140,10 +1140,14 @@ path not being clicked -> clear end and start
   var endColorSelect = [];
   var vPath = []; //storing path's visual
   var combinedVpath = [];
+  var commonColor = [];
 
 function pathLogicSelect(x,y) {
 
-  if (!pStart.length) { //no start or end
+  let valid = false; //check if any tile around the clicked tile have a color
+  if ( y && nextGrid[x][y-1].color || x && nextGrid[x-1][y].color || y < ySize-1 && nextGrid[x][y+1].color || x < xSize-1 && nextGrid[x+1][y].color ) { valid = true }
+  
+  if (valid && !pStart.length) { //no start or end, set start
 
       pStart = [x,y];
       selectColor(x,y,startColorSelect);
@@ -1152,8 +1156,19 @@ function pathLogicSelect(x,y) {
       return;
       }
   
-  if (pStart.length && pStart[0] == x && pStart[1] == y) { //start same as before
+  if (pStart.length && pEnd.length && combinedVpath.some(e => e.x == x && e.y == y && e.state && e.color < 13)) { convertVpath(); console.log("path clicked"); return } //path clicked
 
+
+  if (pStart.length && pStart[0] == x && pStart[1] == y) { //start clicked again, convert start cause its just one tile
+
+  // commonColor = startColorSelect.filter(startColor => startColorSelect.some(endColor => endColor.cs == startColor.cs && endColor.cs))
+  // convertVpath();
+   console.log("start clicked again, converting it to tiles");
+   return } 
+
+    //currently doesn't work, cause converVpath only converts the Vpath, needs to check if 2 elements of startColorSelect is the same, and if so, convert it to a tile.
+
+    /*
     pStart.length = 0;
     startColorSelect.forEach(e => e.state = 3)
     vPath.forEach(e => e.state = 3)
@@ -1161,8 +1176,8 @@ function pathLogicSelect(x,y) {
     busy = true;
     return;
     }
-
-  if (pStart.length && !pEnd.length) { //there is a start, no end
+    */
+  if (valid && pStart.length && !pEnd.length) { //there is a start, no end, set end
     
       pEnd = [x,y]
       selectColor(x,y,endColorSelect);
@@ -1170,8 +1185,8 @@ function pathLogicSelect(x,y) {
       busy = true;
       return;
       }
-  
-  if (pEnd.length && pEnd[0] == x && pEnd[1] == y) { //end is same as before
+  /*
+  if (pEnd.length && pEnd[0] == x && pEnd[1] == y) { //end is same as before, actually we dont need to care about this
 
     pEnd.length = 0;
     endColorSelect.forEach(e => e.state = 3)
@@ -1180,10 +1195,8 @@ function pathLogicSelect(x,y) {
     busy = true;
     return;
     }
-
-  if (combinedVpath.some(e => e.x == x && e.y == y && e.state && e.color < 13)) { convertVpath(); console.log("path clicked"); return }
-
-  if (pEnd.length && pStart.length) { //some other state 0 tile been clicked
+*/
+  if (!valid || pEnd.length || pStart.length) { //some other state 0 tile been clicked, remove path.
 
     pEnd.length = 0;
     pStart.length = 0;
@@ -1198,7 +1211,8 @@ function pathLogicSelect(x,y) {
      target[0] = new visualPath(x,y,1,14,true); //x,y, state, color, start, color select value
      target.length = 1;
      combinedVpath.length = 0;
-     let commonColor = [];
+     commonColor.length = 0;
+     vPath.length = 0;
 
      if (x && nextGrid[x-1][y].color)  { target.push( new visualPath(x-1,y,1, 14,false, nextGrid[x-1][y].color ));} //left
      if (y && nextGrid[x][y-1].color)  { target.push( new visualPath(x,y-1,1, 14,false, nextGrid[x][y-1].color ));} //bottom
@@ -1206,19 +1220,31 @@ function pathLogicSelect(x,y) {
      if (x < xSize-1 && nextGrid[x+1][y].color) { target.push( new visualPath(x+1,y,1, 14,false, nextGrid[x+1][y].color ));} //right
      if (y < ySize-1 && nextGrid[x][y+1].color) { target.push( new visualPath(x,y+1,1, 14,false, nextGrid[x][y+1].color ));} //top
 
-     if ( pStart.length && pEnd.length ) { 
+     if ( pStart.length && pEnd.length ) {
 
         commonColor = startColorSelect.filter(startColor => endColorSelect.some(endColor => endColor.cs == startColor.cs && endColor.cs)) //there is probably a less cursed way to do this
-
-      runPfind(pStart[0],pStart[1],pEnd[0],pEnd[1], commonColor.length ? commonColor[0].cs : 13 );  console.log("start", pStart[0],pStart[1], "end", pEnd[0],pEnd[1],"common color:", 12 ) } //need to uncurse it
-
-    if ( target[1] ) { target[0].color = target[1].cs } //if there is any color tiles around, set the start / end color same as first color tile
-    if ( commonColor.length ) { target[0].color = commonColor[0].cs }
+        runPfind(pStart[0],pStart[1],pEnd[0],pEnd[1], commonColor.length ? commonColor[0].cs : 13 );  console.log("start", pStart[0],pStart[1], "end", pEnd[0],pEnd[1],"common color:", commonColor ) } //need to uncurse it
+        
+        if ( commonColor.length && vPath.length ) { //if there is a path, and a common color, set the start and end point color's the same as common color.
+            console.log("are we")
+            endColorSelect[0].color = startColorSelect[0].color = commonColor[0].cs;
+            let temp = (startColorSelect.concat(endColorSelect)).forEach(e => { if (!commonColor.some(color => color.cs == e.cs)) { e.state = 3 }}); // concat start and end color to a temporary unnamed array, than for each element ,check if its present in commonColors, if its not, set it state to zero, since is all references, its directly modify startcolorSelect and Endcolorselect
+            }
+          //commonColor.some(color => color.cs == 4)
+          //{ (startColorSelect.concat(endColorSelect)).forEach(e => { if (e.cs != commonColor[0].cs) { e.state = 3 }}) }
+          // { startColorSelect.forEach(e => { if (e.cs != commonColor[0].cs) { e.state = 3 }}) }
+        // check if value found in common 
+       // if ( target[1] ) { target[0].color = target[1].cs } //if there is any color tiles around, set the start / end color same as first color tile
     
     combinedVpath = vPath.concat(startColorSelect,endColorSelect) // this merges references of vpath, startColorSelect and endColorSelect, changing them at any point will affect combinedVpath
     //pColorTiles = combinedVpath.map(e =>({ x:e.x,y:e.y }))
   }
  }
+
+function recolorPath(x,y) { 
+ vPath.forEach(e => e.color = nextGrid[x][y].color)
+ busy = true;
+}
 
 convertVpath.tiles = 0;
 function convertVpath() {
