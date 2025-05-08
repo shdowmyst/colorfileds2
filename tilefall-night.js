@@ -882,10 +882,6 @@ function nextClick(u,v) {
 
   function moveLeftSide(leftSide) { 
 
-  // let offset = ySize - leftEdge.length //this code is takes edge of the empty tiles 
-  // for (let y = offset; y < ySize; y++) {
-  // for (let x = leftEdge[y - offset]; x >= 0; x--) {
-
       for (let y = 0; y < ySize; y++) {
         for (let x = leftSide; x >= 0; x--) {
 
@@ -910,10 +906,6 @@ function nextClick(u,v) {
 
   function moveRightSide(rightSide) { //this also could be one function, but does it even matter at this point...
 
-  //   let offset = ySize - rightSide.length
-  //   for (let y = offset; y < ySize; y++) {
-  //   for (let x = rightSide[y - offset]; x < xSize; x++) {
-
         for (let y = 0; y < ySize; y++) {
         for (let x = rightSide; x < xSize ; x++) {
     
@@ -937,6 +929,7 @@ function nextClick(u,v) {
   //despawnUnmovable(); // setTimeout(despawnUnmovable, 1600)
     difficulty(score,thisColor); //calcualte removes
   if (difficulty.fixedTiles) { dropTiles(); }
+    validatePath(); //if there is a path, check if its still valid
     nextMatrix();
     gameOver();
     roundCorners();
@@ -1138,6 +1131,8 @@ click empty tile -> start / end logic -> color select logic -> color check logic
                                           lock first color
                                            lock end color
 
+store the tiles, that picked up by startcolor select, and endcolor select, and check if they are still the same tiles.
+
 */
 
   var pStart = [];
@@ -1151,22 +1146,43 @@ click empty tile -> start / end logic -> color select logic -> color check logic
 
 function pathLogicSelect(x,y,colorSelectorClick) {
 
-  if (pStart.length && pEnd.length && combinedVpath.some(e => e.x == x && e.y == y && e.state && e.color < 13)) { //path clicked
+ let valid = false; //check if any tile around the clicked tile have a color
+ commonColor.length = 0;
+
+  if (vPath.length && vPath.some(e => e.x == x && e.y == y && e.state && e.color != 13)) { //path clicked // && vPath.every(f => f.color < 13)
       convertVpath(); console.log("path clicked");
       return;} 
 
    if (colorSelectorClick) { // color select clicked, neither start, or end was locked.
+      lockColor();
       colorCheck();
       recolorPath();
-      lockColor();
       mergePath();
-      return;
-     }
+      return;}
 
-
-  let valid = false; //check if any tile around the clicked tile have a color
   if ( y && nextGrid[x][y-1].color || x && nextGrid[x-1][y].color || y < ySize-1 && nextGrid[x][y+1].color || x < xSize-1 && nextGrid[x+1][y].color ) { valid = true }
   
+  if (pStart.length && pStart[0] == x && pStart[1] == y) { //start clicked again, convert end if color select allows it.
+      
+      colorSelect(startColorSelect,1);
+      pStart.lock = false;
+      pEnd.lock = false;
+      selectorDoubleClick(startColorSelect);
+      mergePath();
+      console.log("start clicked again");
+      return;}
+
+    if (pEnd.length && pEnd[0] == x && pEnd[1] == y) { //end clicked again, convert end if color select allows it.
+      
+      colorSelect(endColorSelect,1);
+      pStart.lock = false;
+      pEnd.lock = false;
+      selectorDoubleClick(endColorSelect);
+      mergePath();
+      console.log("end clicked again");
+      //check if start or end color selcet, have same color twice,
+      return;}
+
   if (valid && pStart.lock) { //start is locked, set end again.
       
       pEnd = [x,y]
@@ -1175,7 +1191,7 @@ function pathLogicSelect(x,y,colorSelectorClick) {
       if (commonColor.length) { endColorSelect[0].color = startColorSelect[0].color }
       calcualtePath();
       mergePath();
-      console.log("set locked end"); 
+      console.log("start is locked, set end again"); 
       return;}
 
   if (valid && pEnd.lock) { //end is locked, set start again
@@ -1186,7 +1202,7 @@ function pathLogicSelect(x,y,colorSelectorClick) {
       if (commonColor.length) { startColorSelect[0].color = endColorSelect[0].color }
       calcualtePath();
       mergePath();
-      console.log("set locked start");
+      console.log("end is locked, set start again");
       return;}
 
   if (valid && !pStart.length) { //no start, set start
@@ -1208,10 +1224,6 @@ function pathLogicSelect(x,y,colorSelectorClick) {
       console.log("set end");
       return;}
   
-  if (pStart.length && pStart[0] == x && pStart[1] == y) { //start clicked again, convert start cause its just one tile
-       console.log("start clicked again, converting it to tiles");
-       return;} 
-
   if (!valid || pEnd.length || pStart.length) { //some other state 0 tile been clicked, remove path.
       
       pEnd.length = 0;
@@ -1228,30 +1240,13 @@ function pathLogicSelect(x,y,colorSelectorClick) {
      target[0] = new visualPath(x,y,1,13,origin); //x,y, state, color, original array, color select value
      target.length = 1;
 
-     if (x && nextGrid[x-1][y].color  )  { target.push( new visualPath(x-1,y,1, 14,origin, nextGrid[x-1][y].color ));} //left
-     if (y && nextGrid[x][y-1].color  )  { target.push( new visualPath(x,y-1,1, 14,origin, nextGrid[x][y-1].color ));} //bottom
+     if (x && nextGrid[x-1][y].color )  { target.push( new visualPath(x-1,y,1, 14,origin, nextGrid[x-1][y].color ));} //left
+     if (y && nextGrid[x][y-1].color )  { target.push( new visualPath(x,y-1,1, 14,origin, nextGrid[x][y-1].color ));} //bottom
  
      if (x < xSize-1 && nextGrid[x+1][y].color ) { target.push( new visualPath(x+1,y,1, 14,origin, nextGrid[x+1][y].color ));} //right
      if (y < ySize-1 && nextGrid[x][y+1].color ) { target.push( new visualPath(x,y+1,1, 14,origin, nextGrid[x][y+1].color ));} //top
      }
     
-    /*
-     if (x && nextGrid[x-1][y].color && (targetColor == undefined || targetColor == nextGrid[x-1][y].color))   { target.push( new visualPath(x-1,y,1, 14,origin, nextGrid[x-1][y].color ));} //left
-     if (y && nextGrid[x][y-1].color && (targetColor == undefined || targetColor == nextGrid[x][y-1].color))   { target.push( new visualPath(x,y-1,1, 14,origin, nextGrid[x][y-1].color ));} //bottom
- 
-     if (x < xSize-1 && nextGrid[x+1][y].color && (targetColor == undefined || targetColor == nextGrid[x+1][y].color))  { target.push( new visualPath(x+1,y,1, 14,origin, nextGrid[x+1][y].color ));} //right
-     if (y < ySize-1 && nextGrid[x][y+1].color && (targetColor == undefined || targetColor == nextGrid[x][y+1].color))  { target.push( new visualPath(x,y+1,1, 14,origin, nextGrid[x][y+1].color ));} //top
-
-      /*
-
-     if (x && nextGrid[x-1][y].color  )  { target.push( new visualPath(x-1,y,1, 14,origin, nextGrid[x-1][y].color ));} //left
-     if (y && nextGrid[x][y-1].color  )  { target.push( new visualPath(x,y-1,1, 14,origin, nextGrid[x][y-1].color ));} //bottom
- 
-     if (x < xSize-1 && nextGrid[x+1][y].color ) { target.push( new visualPath(x+1,y,1, 14,origin, nextGrid[x+1][y].color ));} //right
-     if (y < ySize-1 && nextGrid[x][y+1].color ) { target.push( new visualPath(x,y+1,1, 14,origin, nextGrid[x][y+1].color ));} //top
-
-      */
-
   function mergePath() { //merges path, and color selectors before displaying them
       
       combinedVpath.length = 0;
@@ -1270,111 +1265,87 @@ function pathLogicSelect(x,y,colorSelectorClick) {
       if ( commonColor.length ) { pathcolor = commonColor[0].cs }
       if ( pStart.length && pEnd.length ) { runPfind(pStart[0],pStart[1],pEnd[0],pEnd[1], pathcolor ); }
  }
+
+  function selectorDoubleClick(target) {
+
+      commonColor = target.filter((el, elIndex) => target.some((sameE, sameEIndex) => sameE.cs == el.cs && sameEIndex != elIndex));
+       if (commonColor.length > 1) {
+
+      vPath.forEach(e => e.state = 3 );
+      target[0].color = target[0].cs = commonColor[0].cs;
+      vPath.push( target[0] );
+      console.log("common color found in ColorSelect for single tile") };
+  }
  
   function disableColorsSelector() {
    if ( commonColor.length ) { let temp = (startColorSelect.concat(endColorSelect)).forEach(e => { if (!commonColor.some(color => color.cs == e.cs)) { e.state = 3 }}); }
   }
 
-//if lock color clicked, verify, if the clicked color exist in common color, and if so, recolor the path to it.
-
   function recolorPath() { 
-    if (commonColor.some(e => e.cs == nextGrid[x][y].color)) { vPath.forEach(e => e.color = nextGrid[x][y].color ); console.log("recoloring path to a common color"); } 
-    else { vPath.forEach(e => e.color = 13); console.log("no common color found, recoloring path to black"); }
+         let pathcolor = 13;
+         if (vPath.length && vPath.every(e => e.state) && commonColor.some(e => e.cs == nextGrid[x][y].color)) { pathcolor = startColorSelect[0].color = endColorSelect[0].color = nextGrid[x][y].color; console.log("recoloring path to a common color");} 
+    else if (!pStart.lock && !pEnd.lock && commonColor.length) { pathcolor = startColorSelect[0].color = endColorSelect[0].color = commonColor[0].cs; console.log("path unlocked, common color found") }
+    vPath.forEach(e => e.color = pathcolor);
   }
 
   function lockColor() {
   
-  let colorSelector = startColorSelect.concat(endColorSelect)    
-  colorSelector.forEach(e => {
-    if ( e.x == x && e.y == y && e.state) {
-       
-        if (e.color == 13) { e.color = 14; pStart.lock = false; pEnd.lock = false; }
-        else { 
-          e.color = 13;
-          if (e.origin == 1) { startColorSelect[0].color =  startColorSelect[0].cs = nextGrid[x][y].color; pStart.lock = true; pEnd.lock = false; console.log("start locked") }
-          else if (e.origin == 2) { endColorSelect[0].color = endColorSelect[0].cs = nextGrid[x][y].color; pStart.lock = false; pEnd.lock = true; console.log("end locked") }
-          }}
-      else { e.color = 14 }}); //this currently produces a bug, where startColorSelect[0].color and endColorSelect[0].color also colored 14
-}
+  let colorSelector = startColorSelect.concat(endColorSelect);
+  let thisSelector = colorSelector.find(e => e.x == x && e.y == y && e.state);
 
-
-
-//we somehow need to not recolor first element of startcolorselect, and end colorselect here.
-
-// endColorSelect[0].color = lockedColor = nextGrid[x][y].color; pStart.lock = false; pEnd.lock = true; console.log("end locked")
-
-//if color selector is clicked, we swap start with end
-
-
-/*
-          let pathcolor = 13; 
-         combinedVpath.length = 0;
-          commonColor.length = 0;
-         combinedVpath.length = 0;
-
-     vPath.length = 0;
-
-
-
-     if ( pStart.length && pEnd.length ) {
-
-     if ((pStart.lock || pEnd.locked) && endColorSelect.some(e => e.cs == startColorSelect[0].color) ) { pathcolor = endColorSelect[0].color = startColorSelect[0].color }
-     if (!pStart.lock && !pEnd.lock) {
-
-        commonColor = startColorSelect.filter(startColor => endColorSelect.some(endColor => endColor.cs == startColor.cs && endColor.cs)) //there is probably a less cursed way to do this
-        if (commonColor.length) { 
-
-          let temp = (startColorSelect.concat(endColorSelect)).forEach(e => { if (!commonColor.some(color => color.cs == e.cs)) { e.state = 3 }});
-          startColorSelect[0].color = endColorSelect[0].color = pathcolor = commonColor[0].cs }}
-
-            runPfind(pStart[0],pStart[1],pEnd[0],pEnd[1], pathcolor );  console.log("start", pStart[0],pStart[1], "end", pEnd[0],pEnd[1],"common color:", commonColor )
-        
-             // concat start and end color to a temporary array, than for each element ,check if its present in commonColors, if its not, set it state to zero, since is all references, its directly modify startcolorSelect and Endcolorselect
-          
-          //commonColor.some(color => color.cs == 4)
-          //{ (startColorSelect.concat(endColorSelect)).forEach(e => { if (e.cs != commonColor[0].cs) { e.state = 3 }}) }
-          // { startColorSelect.forEach(e => { if (e.cs != commonColor[0].cs) { e.state = 3 }}) }
-        // check if value found in common 
-       // if ( target[1] ) { target[0].color = target[1].cs } //if there is any color tiles around, set the start / end color same as first color tile
+    function resetColor() {
+      colorSelector.forEach(e => e.color = 14 )
+      startColorSelect[0].color = 13;
+      if (endColorSelect.length) { endColorSelect[0].color = 13; } 
     }
-    combinedVpath = vPath.concat(startColorSelect,endColorSelect) // this merges references of vpath, startColorSelect and endColorSelect, changing them at any point will affect combinedVpath
-    //pColorTiles = combinedVpath.map(e =>({ x:e.x,y:e.y }))
+
+  if (thisSelector.color == 13) { 
+      
+      resetColor();      
+      pStart.lock = false;
+      pEnd.lock = false;
+      console.log("start or end unlocked")
+      }
+  
+    else if (thisSelector.color == 14 && thisSelector.origin == 1) {
+
+            resetColor();
+            thisSelector.color = 13;
+            startColorSelect[0].color = startColorSelect[0].cs = nextGrid[x][y].color; 
+            pStart.lock = true;
+            pEnd.lock = false;
+            console.log("start locked") }
+
+    else if (thisSelector.color == 14 && thisSelector.origin == 2) { 
+
+             resetColor();
+             thisSelector.color = 13;
+             endColorSelect[0].color = endColorSelect[0].cs = nextGrid[x][y].color; 
+             pStart.lock = false;
+             pEnd.lock = true;
+             console.log("end locked") }
   }
-*/
-}
-
-
-function colorSelectorLogic(x,y) { 
-
-  if (commonColor.length) { vPath.forEach(e => e.color = nextGrid[x][y].color); console.log("color select clicked, recoloring path"); }
-
-  let colorSelector = startColorSelect.concat(endColorSelect)
-  
-  colorSelector.forEach(e => {
-    if ( e.x == x && e.y == y && e.state) {
-       
-        if (e.color == 13) { e.color = 14; pStart.lock = false; pEnd.lock = false; }
-        else { 
-          e.color = 13;
-          if (e.origin == 1) { startColorSelect[0].color = nextGrid[x][y].color;   pStart.lock = true;  pEnd.lock = false; console.log("start locked") }
-          else if (e.origin == 2) { endColorSelect[0].color = nextGrid[x][y].color; pStart.lock = false; pEnd.lock = true; console.log("end locked") }
-          }}
-
-      else { e.color = 14 }});
-  
-  busy = true;
 }
 
 
 convertVpath.tiles = 0;
 function convertVpath() {
 
+    updateUndoValues(null);
+
+   for (let x = 0; x < xSize; x++) {
+    for (let y = 0; y < ySize; y++) {
+
+      undoGrid[x][y] = structuredClone(nextGrid[x][y]); //store previous grid for undo.
+      }}
+
   for (let i = 0, x,y; i < vPath.length; i++) {
 
+    if (vPath[i].color != 13 && vPath[i].state) {
     x = vPath[i].x; y = vPath[i].y;
     nextGrid[x][y] = new tile(x,y,x,y,vPath[i].color,4)
     convertVpath.tiles++
-    }
+    }}
 
   pStart.length = 0;
   pStart.lock = false;
@@ -1388,6 +1359,25 @@ function convertVpath() {
   nextMatrix();
   roundCorners();
   busy = true;
+}
+
+function validatePath() { //checks if path still connected to same colored elements as before
+
+  let currentColorSelect = startColorSelect.slice(1).concat(endColorSelect.slice(1));
+
+    if (currentColorSelect.length) {
+         
+         for (const e of currentColorSelect) {
+          
+            if ( !(e.cs == nextGrid[ e.x ][ e.y ].color)) {
+            combinedVpath.forEach(e => e.state = 3);
+            pStart.length = 0;
+            pStart.lock = false;
+            pEnd.length = 0;
+            pEnd.lock = false;
+            console.log("path is no longer valid");
+            // busy = true; //being called from nextClick sets the busy
+            return; }}} 
 }
 
 function runPfind(sx,sy,ex,ey,color) {
