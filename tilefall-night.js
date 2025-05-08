@@ -790,7 +790,8 @@ function gameClick(e) {
   
   if (!nextGrid[x][y].state) { pathLogicSelect(x,y,false); return }
   if ( nextGrid[x][y].state && combinedVpath.some(e => e.x == x && e.y == y && e.state )) { pathLogicSelect(x,y,true); return; }
-  if ( nextGrid[x][y].state && nextGrid[x][y].color < 13 ) { nextClick(x,y); return }
+  if ( nextGrid[x][y].state && nextGrid[x][y].color < 13 ) { nextClick(x,y); return; }
+  if ( nextGrid[x][y].state && nextGrid[x][y].color == 14 ) { convertTiles(x,y); return; }
   
 // if ( vPath.length && vPath.some(e => e.x == x && e.y == y) ) { convertVpath(); return }
 }
@@ -1038,7 +1039,8 @@ function convertTiles(u,v) { //converts a cluster to different colored tiles (us
    }}
   busy = true;
   roundCorners();
-//setTimeout(dropTiles, 1600);
+  validatePath();
+//next matrix is called from drop tiles, which is called when tiles are done converting.
 //its possible to click the tile before nextmatrix done runing, so it acts as a cluster zero tile, which makes a weird flashing animation
 
 }
