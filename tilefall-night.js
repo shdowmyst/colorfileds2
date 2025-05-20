@@ -7,9 +7,9 @@
   var tileRoundness = roundnessSteps[4] //if tilesize is 50, 25 will make a circle, default 10
   var animeScale, menuFadeRate, menufps; // 2.2 at 144hz also not actual value: see MeasureFps()
   const canvas = document.getElementById('gameField');
-  const ctx = canvas.getContext('2d', { alpha: false });
+  const ctx = canvas.getContext('2d', { alpha: true });
   const scoreCanvas = document.getElementById('scoreField');
-  const scoreCtx = scoreCanvas.getContext('2d', { alpha: false })
+  const scoreCtx = scoreCanvas.getContext('2d', { alpha: true })
 
   const nextGrid = [];
   const undoGrid = [];
@@ -18,6 +18,7 @@
 
   var resizeId; //window size
   var undoValues = {};
+  var nightmode = false;
 
 // at 144 fps, 50 px tile size, anime scale: 2.2 looks okay. so in 1 second a tile moves 317 px, or 317 / 1000 = 0.317 px / ms
 
@@ -40,7 +41,7 @@
   difficulty.removal = { value:100,color:0 }
   difficulty.setting = 1; // 1: every 3 tile let you remove a single one. //2 same color as last 3 tiles //3 removes limited by number of colors //4 same, but also limited by color  last 3tile //5 no removes at all.
   
-  difficulty.fixedTiles = true; // unmovable tiles, fixed tiles, tiles that dont fall with a better name
+  difficulty.fixedTiles = false; // unmovable tiles, fixed tiles, tiles that dont fall with a better name
   difficulty.permanentTiles = false; //tiles that cant be removed.
   difficulty.verticalMove = true;
 
@@ -48,13 +49,30 @@
  //menu stuff
   var gameoverBox, settingsBox, gameoverText, roundnessSteps, tileSizeSlider, roundnessSlider, colorSlider, difficultySlider;
 
-    //the very first one here is the default color on score canvas remove background, tiles colors starts at index 1
+  //the very first one here is the default color on score canvas remove background, tiles colors starts at index 1
   
+  //ver 1 colors
   //const tileColors = ["#6BDCFF","#FFCA57","#B67E5C","#876047","#FFF570","#4ED06A","#42AE57","#7AFFF0","#6BDCFF","#4B80AF","#FF7A88","#EC5E7C","#804B79","#151515","#fafafa"]
-  //const tileColors = ["#5c9cb0","#aa8d4b","#6e4d3b","#402d22","#b1ab60","#378146","#275f31","#69b2aa","#5c9cb0","#2e4863","#b26971","#9c4b5c","#3b2437","#151515","#cfcfcf"]
   
-   const tileColors = ["#439b99","#c98356","#6a4132","#39251d","#caba7d","#2a885f","#1e5b3f","#4eceb3","#439b99","#243d42","#e4514c","#b6383a","#50333a","#343434","#f4f4dc"]
+  //ver 2 colors
+  //const tileColors = ["#6BDCFF","#FFA754","#8F4D3C","#5F2A21","#FFE961","#4BA34B","#357430","#7BFFE1","#70C4FF","#3D4B74","#FF656F","#D94D5C","#591E3E","#151515","#fafafa"]
+  
+  //ver 3
+  //const tileColors = ["#6BDCFF","#fcac50","#916046","#644534","#fee965","#42ae55","#358a43","#6afde0","#5ac0fb","#386189","#fb6570","#d54c62","#5e3657","#151515","#fafafa"]
 
+  //ver 4 - final?
+  //var tileColors = ["#6BDCFF","#ffaa65","#c78461","#845b4b","#fecc68","#36c272","#009359","#4acbd5","#169ebb","#2d6792","#ff6474","#d15261","#6a465d","#151515","#efebe8"]
+
+  //ver 5 - final final...
+  var tileColors = ["#165786","#ffa154","#c17750","#774937","#fec658","#20bb63","#008747","#36c5d0","#0093b4","#165686","#ff5365","#cc3f50","#5a324b","#151515","#efebe8"]
+
+  //night mode 
+  //const tileColors = ["#439b99","#c98356","#6a4132","#39251d","#caba7d","#2a885f","#1e5b3f","#4eceb3","#439b99","#243d42","#e4514c","#b6383a","#50333a","#343434","#f4f4dc"]
+  
+  //night mode v2 final?
+  //const tileColors = ["#439b99","#c98356","#6a4132","#402a21","#caba7d","#2a885f","#1e5b3f","#4eceb3","#439b99","#243d42","#e4514c","#b6383a","#5f3741","#343434","#f4f4dc"]
+
+  //const tileColors = ["#6BDCFF","#","#","#","#","#","#","#","#","#","#","#","#","#151515","#fafafa"]
 
   /* colors:
   orange = "#FFCA57"        hsl(41, 100%, 67%) 
@@ -66,11 +84,11 @@
   lightblue = "#7AFFF0"     hsl(173, 100%, 74%)
   blue = "#6BDCFF"          hsl(194, 100%, 71%)
   darkblue = "#4B80AF"      hsl(208, 40%, 49%)
-   pink = "#FF7A88"         hsl(354, 100%, 74%)
-   darkerpink = "#EC5E7C"   hsl(347, 79%, 65%)
-   purple = "#804B79"       hsl(308, 26%, 40%)
-   black = "#151515"        hsl(0, 0%, 8%)
-   white = "#fafafa"        hsl(0, 0%, 98%)
+  pink = "#FF7A88"         hsl(354, 100%, 74%)
+  darkerpink = "#EC5E7C"   hsl(347, 79%, 65%)
+  purple = "#804B79"       hsl(308, 26%, 40%)
+  black = "#151515"        hsl(0, 0%, 8%)
+  white = "#fafafa"        hsl(0, 0%, 98%)
    */
 
   var temp = 0;
@@ -78,10 +96,10 @@
   setMenu.area = {state:0}; //blue box over a clicked button
 
   const gameOverSprite = new Image();
-  gameOverSprite.src = 'allClear-next.png';
+  gameOverSprite.src = 'allClear-next-v4.png';
 
   const settingsSprite = new Image();
-  settingsSprite.src = 'settings-next-v3.png';
+  settingsSprite.src = 'settings-next-v4.png';
 
 class tile {
   
@@ -98,20 +116,21 @@ class tile {
     this.topright = 0;
     this.bottomleft = 0;
     this.bottomright = 0;
-    this.despawn = 0; //store previous color for despawn anim
+    this.despawn = 0; //store previous tile object
     this.block = 0; //a continous block of tiles based on state
     this.reload = false; //tiles that playing reolad animation
     this.acc = 0; //acceleration
+    this.hacc = 0; //horizontal acceleration
     }
   
   moveTile() {
-  if (this.rx > this.nx) {this.rx = Math.max( this.rx - animeScale, this.nx); } //right to left - default
-  if (this.rx < this.nx) {this.rx = Math.min( this.rx + animeScale, this.nx); } //left to right
+  if (this.rx > this.nx) {this.rx = Math.max( this.rx - animeScale - this.hacc, this.nx); this.hacc += 0.028; } //right to left - default
+  if (this.rx < this.nx) {this.rx = Math.min( this.rx + animeScale + this.hacc, this.nx); this.hacc += 0.028; } //left to right
 
-  if (this.ry > this.ny) {this.ry = Math.max( this.ry - animeScale, this.ny); } //down
-  if (this.ry < this.ny) {this.ry = Math.min( this.ry + animeScale + this.acc / 30, this.ny); this.acc++;  } //up
+  if (this.ry > this.ny) {this.ry = Math.max( this.ry - animeScale, this.ny); } //up
+  if (this.ry < this.ny) {this.ry = Math.min( this.ry + animeScale + this.acc, this.ny); this.acc += 0.034; } //down
 
-  if (this.ry == this.ny && this.rx == this.nx) { this.state = 3; this.acc = 0 }
+  if (this.ry == this.ny && this.rx == this.nx) { this.state = 3; this.hacc = 0; this.acc = 0 }
 
   //if (this.ry != this.ny) {this.ry = Math.min( this.ry + animeScale, this.ny); }
   //if (this.ry == this.ny && this.rx == this.nx) { this.state = 3 }
@@ -186,7 +205,7 @@ class tile {
   whiteTileCenter() {
   
   ctx.beginPath();
-  ctx.fillStyle = "#D9D9C3"
+  ctx.fillStyle = "#bbbbbb"
 
   let offset = this.size / 3
   ctx.roundRect(this.rx + offset , this.ry + offset , this.size / 3 , this.size / 3, [this.topleft, this.topright, this.bottomright, this.bottomleft]);
@@ -232,9 +251,9 @@ class visualPath {
   let roundness = tileRoundness / 4
   ctx.roundRect(this.rx + offset , this.ry + offset , this.size, this.size, roundness);
   ctx.fill();
-
   }
 }
+
 
 class menu {
 
@@ -365,9 +384,33 @@ function setCanvasSize() {
   scoreCtx.textAlign = "center";
   scoreCtx.font = "14px inconsolata";
 
-  ctx.imageSmoothingEnabled = false;
-//  scoreCtx.imageSmoothingEnabled = false;
+ // ctx.imageSmoothingEnabled = false;
+ // scoreCtx.imageSmoothingEnabled = false;
 
+}
+
+function setColorMode() {
+
+if (!nightmode) {
+  document.body.style.background = "black";
+  tileColors = ["#243d42","#c98356","#6a4132","#402a21","#caba7d","#2a885f","#1e5b3f","#4eceb3","#439b99","#243d42","#e4514c","#b6383a","#5f3741","#343434","#f4f4dc"]   
+  
+  gameOverSprite.src = 'allClear-next-v4-night.png';
+  settingsSprite.src = 'settings-next-v4-night.png';
+  
+  nightmode = true; 
+  }
+
+else {
+  document.body.style.background = "#0e2c44";
+  tileColors = ["#165786","#ffa154","#c17750","#774937","#fec658","#20bb63","#008747","#36c5d0","#0093b4","#165686","#ff5365","#cc3f50","#5a324b","#151515","#efebe8"]
+
+  gameOverSprite.src = 'allClear-next-v4.png';
+  settingsSprite.src = 'settings-next-v4.png';
+  
+  nightmode = false; 
+  }
+busy = true;
 }
 
 function setMenu() {
@@ -401,8 +444,8 @@ function setMenu() {
   difficultySlider.range = sliderArray(difficultySlider.steps,difficultySlider.high,difficultySlider.low);
   difficultySlider.x = difficultySlider.range[difficulty.setting-1] //cause array starts at 0
 
-   gameoverBox = new menu( midX , midY , 300,200,10,gameOverSprite,"gameOver",menufps); //x, y, frame width, frame height, number of frames, name of the frame sprite, fps = every n.th frame it should update
-   settingsBox = new menu( midX , midY , 360,540,16,settingsSprite,"settings",menufps);
+   gameoverBox = new menu( midX , midY , 350,170,15,gameOverSprite,"gameOver",menufps); //x, y, frame width, frame height, number of frames, name of the frame sprite, fps = every n.th frame it should update
+   settingsBox = new menu( midX , midY , 350,800,15,settingsSprite,"settings",menufps);
 }
 
 
@@ -438,15 +481,30 @@ function makePalette() {
  //each set contains 3 colors in different shades, to generate nice looking palettes, first pick a color from a set
  //than one (or none) of its shades. Each color should be a primary color, or primary + shade, but never just a shade.
 
-  let colorset = [];
-   let sets =[[1,2,3],[4,5,6],[7,8,9],[10,11,12]] // orange = [1,2,3], green = [4,5,6], blue = [7,8,9], pink = [10,11,12];
+ // 2 colors -> 1 primary + 1 shade
+ // 3 colors -> 1 primary + 2 shade
+ // 4 colors -> 2 primary + 2 shade 
+ // 5 colors -> 2 primary + 3 shade
+ // 6 colors -> 3 primary + 3 shade
+ // 7 colors -> 3 primary + 4 shade
+ // 8 colors -> 4 primary + 4 shade
+ // 9 colors -> 4 primary + 5 shade
+ //10 colors -> 5 primary + 5 shade
+ //11 colors -> 5 primary + 6 shade
 
+  let colorset = [];
+  let setID = shuffle([0,1,2,3])
+  let sets =[[1,2,3],[4,5,6],[7,8,9],[10,11,12]] // orange = [1,2,3], green = [4,5,6], blue = [7,8,9], pink = [10,11,12];
+
+  for (let j = 0; j < 4 ; j++) { colorset = colorset.concat( sets[ setID[j] ] ) }
+/*
   while (sets[0].length + sets[1].length + sets[2].length + sets[3].length > makeGrid.colors) {
   sets[ Math.floor(Math.random() * 4) ].pop();
   }
     for (let j = 0; j < sets.length ; j++) { colorset = colorset.concat(sets[j]) }
-
-return colorset;}
+*/
+return colorset;
+}
 
 
 function mergeClusters() { //re assign colors based on clusters, recudes clusters since some will have the same color
@@ -657,7 +715,7 @@ function renderTiles() {
                   break;
           }
                
-     //  clickBoxHelper();
+         clickBoxHelper();
 
        clickConfirm();
 
@@ -693,18 +751,18 @@ function writeScore() {
     }
 
     scoreCtx.beginPath()
-    scoreCtx.fillStyle = "#386389";
+    scoreCtx.fillStyle = tileColors[ makeGrid.colorLookup[2] ]; // score box
     scoreCtx.roundRect(0,5,100,15,10); //score
     scoreCtx.roundRect(300,5,50,15,10); //undo 
     scoreCtx.fill(); 
 
-    scoreCtx.fillStyle = "#6bdcff" // "#244b6e"; 
+    scoreCtx.fillStyle = tileColors[ makeGrid.colorLookup[0] ] // score, tile count, undo color
     scoreCtx.fillText("score:" + writeScore.score,50,17)
-    scoreCtx.fillText("tiles:" + makeGrid.colorTiles,150,17)
+    scoreCtx.fillText("tiles:" + Math.round(makeGrid.colorTiles / writeScore.totalTiles * 100) + "%" ,150,17)
     
     scoreCtx.fillText("undo",325,17)
     
-    scoreCtx.fillStyle = difficulty.setting == 2 || difficulty.setting == 4 ? "#244b6e" : "#6bdcff";
+    scoreCtx.fillStyle = difficulty.setting == 2 || difficulty.setting == 4 ? (nightmode ? "black" : "#0e2c44") : tileColors[7] ; //removes text color
     scoreCtx.fillText("removes:" + difficulty.removal.value,250,17) //text,x,y
 }
      
@@ -1661,26 +1719,6 @@ function gameOverClick(e) {
     busy = true;
 }
 
-function clickBoxHelper() { //temporary function to help visualize a button
-
-  let x = ctx.canvas.width / 2
-  let y = ctx.canvas.height / 2
-
-  //offsett
-  let xo = -65
-  let yo = -14
-
-   //colorSlider = new slider(midX,midY-14)
-   //difficultySlider = new slider(midX,midY+22)
-
-  // size of the button
-  let sx = 180;
-  let sy = 25;
-
-  ctx.fillStyle = "hsla(181,100%,48%,0.5)";
-  ctx.fillRect( x+xo,  y+yo,  sx ,  sy ) // reset button
-}
-
 var startOffset, activeSlider; 
 
 const getClosestSliderPosition = (xPos, range) => 
@@ -1802,6 +1840,28 @@ function SliderSettings(e) {
   }
 }
 
+function clickBoxHelper() { //temporary function to help visualize a button
+
+  let x = ctx.canvas.width / 2
+  let y = ctx.canvas.height / 2
+
+  //offsett from center
+  let xo = 120
+  let yo = -395
+
+   //colorSlider = new slider(midX,midY-14)
+   //difficultySlider = new slider(midX,midY+22)
+
+  // size of the button
+  let sx = 50;
+  let sy = 50;
+
+  ctx.fillStyle = "hsla(181,100%,48%,0.5)";
+  ctx.beginPath();
+  //ctx.roundRect(x+xo,y+yo,sx,sy,10) // reset button
+  ctx.fill();
+}
+
 function settingsClick(e) {
 
   let x = ctx.canvas.width / 2
@@ -1811,71 +1871,52 @@ function settingsClick(e) {
 
      if(settingsBox.state == 2)  {
 
-        if (coords.x > x-118 && coords.y > y+141  && coords.x < x-38 && coords.y < y+182  )  { //back button on settings box.
+        if (coords.x > x+120 && coords.y > y-395  && coords.x < x+170 && coords.y < y-345  )  { //close button on settings box.
 
-          setMenu.area = { x:x-118,y:y+141,sx:80,sy:41, state:1 }
+          setMenu.area = { x:x+120,y:y-395,sx:50,sy:50, state:1 }
           settingsBox.state = 3;
           assingEventListener("game");
           gameOver();
         }
-        else if (coords.x > x+38 && coords.y > y+141  && coords.x < x+118 && coords.y < y+182  )  { //reset button on settings box.
+        else if (coords.x > x-165 && coords.y > y-330  && coords.x < x-5 && coords.y < y-290  )  { //reset button on settings box.
 
-          setMenu.area = { x:x+38,y:y+141,sx:80,sy:41, state:1 }
+          setMenu.area = { x:x-165,y:y-330,sx:160,sy:40, state:1 }
+          settingsBox.state = 3;
+          //resetTiles();
+          window.location.reload(); //Either this or reset all the vairables, but whats the difference really
+        }
 
+        else if (coords.x > x-165 && coords.y > y-391  && coords.x < x-5 && coords.y < y-351 )  { //new game button
+        //first 2 coordinates are starting point, second 2 are ending so substract size from first 2
+          setMenu.area = { x:x-165,y:y-391,sx:160,sy:40, state:1 }  
           settingsBox.state = 3;
           newGame();
-        }
-        else if (coords.x > x-98 && coords.y > y-38  && coords.x < x-57 && coords.y < y+3 )  { //difficulty setting down.
-
-          if (difficulty.setting > 1) {
-          setMenu.area = { x:x-98,y:y-38,sx:41,sy:41, state:1 }
-          settings("difficulty",-1)
           }
 
+        else if (coords.x > x-165 && coords.y > y-272  && coords.x < x-5 && coords.y < y-232  )  { //how to play button
+          setMenu.area = { x:x-165,y:y-272,sx:160,sy:40, state:1 }
+          console.log("help!");
         }
-        else if (coords.x > x+57 && coords.y > y-38  && coords.x < x+98 && coords.y < y+3 )  { //difficulty setting up.
 
-          if (difficulty.setting < 5) {
-          setMenu.area = { x:x+57,y:y-38,sx:41,sy:41, state:1 }
-          settings("difficulty",+1)
-          }
-        
+        else if (coords.x > x+53 && coords.y > y-330  && coords.x < x+158 && coords.y < y-290  )  { //night mode
+        setMenu.area = { x:x+53,y:y-330,sx:105,sy:40, state:1 }
+        setColorMode();
         }
-        else if (coords.x > x-98 && coords.y > y-140  && coords.x < x-57 && coords.y < y-99 )  { //color setting down.
-
-          if (makeGrid.colors > 2) {
-          setMenu.area = { x:x-98,y:y-140,sx:41,sy:41, state:1 }
-          settings("colors",-1)
-          }
-
-        }
-        else if (coords.x > x+57 && coords.y > y-140  && coords.x < x+98 && coords.y < y-99 )  { //color setting up.
-
-          if (makeGrid.colors < 12) { //max amount of colors set here #maxcolors
-          setMenu.area = { x:x+57,y:y-140,sx:41,sy:41, state:1 }
-          settings("colors",+1)
-          }
-        
-        }
-        else if (coords.x > x-104 && coords.y > y+52  && coords.x < x+11 && coords.y < y+107 )  { //default button
-
-          setMenu.area = { x:x-104,y:y+52,sx:115,sy:41, state:1 }  
-          resetTiles(); //sigh
-          }
     }
 }
 
+clickConfirm.alpha = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1,0]; //well this is dumb.
 function clickConfirm() { //flashes a blue box over clicked button
 
         if (setMenu.area.state) {
-
+        
+        ctx.fillStyle = "rgba(50,193,226," + clickConfirm.alpha[setMenu.area.state] + ")";
+        ctx.beginPath();
+        ctx.roundRect( setMenu.area.x,  setMenu.area.y,  setMenu.area.sx ,  setMenu.area.sy, 10) // reset button
+        ctx.fill();
         setMenu.area.state++
-
-        ctx.fillStyle = "hsla(181,100%,48%,0.5)";
-        ctx.fillRect( setMenu.area.x,  setMenu.area.y,  setMenu.area.sx ,  setMenu.area.sy ) // reset button
-        
-        if (setMenu.area.state > 5) { setMenu.area.state = 0; }
-        
+        busy = true;
+        if (setMenu.area.state == 20) { setMenu.area.state = 0; }           
         }
 }
 /*
@@ -1958,13 +1999,9 @@ function newGame() { // formally known as reset tiles
 
 function resetTiles() { // formally known as default
 
-  sessionStorage.clear();
+//  sessionStorage.clear();
 
   assingEventListener("none");
-
-  vPath.length = 0;
-  pStart.length = 0;
-  pEnd.length = 0;
 
   undoValues.valid = 0;
   difficulty.removal = { value:0,color:0 } 
@@ -1974,11 +2011,24 @@ function resetTiles() { // formally known as default
   
   highScore.totalScore = 0;
   writeScore.score = 0;
-  
+
+  vPath.length = 0;
+  pStart.length = 0;
+  pEnd.length = 0;
+
+  newtileSize = tileSize = tileSizeSteps[3];  // default 50
+  animeScale = animeScaleSteps[newtileSize]; //tilesize
+
+  setCanvasSize();
+  nextGrid.length = 0;
+  setMenu();
+  setTileRadius();
+  tileRoundness = roundnessSteps[4];
   resetTileCount();
   makeGrid();
   nextMatrix();
   roundCorners();
+  busy = true;
 }
 
 window.onresize = function() {
@@ -2005,7 +2055,8 @@ function doneResizing() {
   setMenu();
   makeGrid(1); //dont generate new colors
   nextMatrix();
-  roundCorners(); 
+  roundCorners();
+  busy = true;
 }
 
 //shuffles an array
@@ -2059,5 +2110,6 @@ setCanvasSize();
 //setMenu(); //being called after fps is measured
 makeGrid();
 nextMatrix();
+writeScore.totalTiles = makeGrid.colorTiles;
 roundCorners();
 MeasureFps();
