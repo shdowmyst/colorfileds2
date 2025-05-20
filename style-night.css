@@ -2,18 +2,29 @@
     body,html {
     padding: 0;
     margin: 0;
-   /* background: #244b6e; */
-   /* background: #0d1826; */
-    background: black;
     overflow: hidden;
+    touch-action: none;
     }
 
+    body {
+    background: #0e2c44;
+    }
+/*
+    @font-face {
+    font-smooth: never;
+    font-family: fixedSysEx;
+    src: url(FSEX300.ttf);
+}
+*/
     @font-face {
     font-smooth: auto;
     font-family: inconsolata;
     src: url(Inconsolata_SemiExpanded-Bold.ttf);
+  
+  /*  src: url(Inconsolata-Bold.ttf); */
 }
-    
+
+
     #gameField, #scoreField {
     display: block;
     margin: auto;
