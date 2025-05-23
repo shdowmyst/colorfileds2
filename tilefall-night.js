@@ -41,8 +41,8 @@
   difficulty.removal = { value:100,color:0 }
   difficulty.setting = 1; // 1: every 3 tile let you remove a single one. //2 same color as last 3 tiles //3 removes limited by number of colors //4 same, but also limited by color  last 3tile //5 no removes at all.
   
-  difficulty.fixedTiles = false; // unmovable tiles, fixed tiles, tiles that dont fall with a better name
-  difficulty.permanentTiles = false; //tiles that cant be removed.
+  difficulty.fixedTiles = true; // unmovable tiles, fixed tiles, tiles that dont fall with a better name
+  difficulty.permanentTiles = true; //tiles that cant be removed.
   difficulty.verticalMove = true;
 
   moveSlider.called = 0;
@@ -64,7 +64,7 @@
   //var tileColors = ["#6BDCFF","#ffaa65","#c78461","#845b4b","#fecc68","#36c272","#009359","#4acbd5","#169ebb","#2d6792","#ff6474","#d15261","#6a465d","#151515","#efebe8"]
 
   //ver 5 - final final...
-  var tileColors = ["#165786","#ffa154","#c17750","#774937","#fec658","#20bb63","#008747","#36c5d0","#0093b4","#165686","#ff5365","#cc3f50","#5a324b","#151515","#efebe8"]
+  var tileColors = ["#165786","#ffa154","#c17750","#774937","#fec658","#20bb63","#008747","#36c5d0","#0093b4","#165686","#ff5365","#cc3f50","#5a324b","#101417","#efebe8", "#919191"]
 
   //night mode 
   //const tileColors = ["#439b99","#c98356","#6a4132","#39251d","#caba7d","#2a885f","#1e5b3f","#4eceb3","#439b99","#243d42","#e4514c","#b6383a","#50333a","#343434","#f4f4dc"]
@@ -99,7 +99,7 @@
   gameOverSprite.src = 'allClear-next-v4.png';
 
   const settingsSprite = new Image();
-  settingsSprite.src = 'settings-next-v4.png';
+  settingsSprite.src = 'settings-next-v4-s.png';
 
 class tile {
   
@@ -121,6 +121,7 @@ class tile {
     this.reload = false; //tiles that playing reolad animation
     this.acc = 0; //acceleration
     this.hacc = 0; //horizontal acceleration
+    this.type = 0;
     }
   
   moveTile() {
@@ -189,9 +190,6 @@ class tile {
   ctx.beginPath(); 
   ctx.fillStyle = tileColors[this.color];
 
-   // setColor(this.color);
-  // ctx.fillStyle = "hsl(" + hue + ")"; why on earth did I used hsl here
-
   let xmoveOffset = 0;
   let ymoveOffset = 0;
     
@@ -211,12 +209,22 @@ class tile {
   ctx.roundRect(this.rx + offset , this.ry + offset , this.size / 3 , this.size / 3, [this.topleft, this.topright, this.bottomright, this.bottomleft]);
   ctx.fill();
   }
+
+  grayTileCenter() {
+  
+  ctx.beginPath();
+  ctx.fillStyle = "#7b8081"
+
+  let offset = 10
+  ctx.roundRect(this.rx + offset , this.ry + offset , this.size -20 , this.size -20, [this.topleft, this.topright, this.bottomright, this.bottomleft]);
+  ctx.fill();
+  }
   
   debug(x,y) {
 
-  ctx.fillStyle = "red";
+  ctx.fillStyle = "black";
   ctx.font = "12px arial";
-  ctx.fillText(  /* yi + ':' + xi  's:' + this.state + 'c:' + ("x:" + x + " y:" + y ) */ this.block, this.rx + 25, this.ry + 25) }
+  ctx.fillText(  /* yi + ':' + xi  's:' + this.state + 'c:' + ("x:" + x + " y:" + y ) */ this.color, this.rx + 25, this.ry + 25) }
 }
 
 class visualPath {
@@ -389,11 +397,11 @@ function setCanvasSize() {
 
 }
 
-function setColorMode() {
+function setColorMode() { //really should call it night mode
 
 if (!nightmode) {
   document.body.style.background = "black";
-  tileColors = ["#243d42","#c98356","#6a4132","#402a21","#caba7d","#2a885f","#1e5b3f","#4eceb3","#439b99","#243d42","#e4514c","#b6383a","#5f3741","#343434","#f4f4dc"]   
+  tileColors = ["#243d42","#c98356","#6a4132","#402a21","#caba7d","#2a885f","#1e5b3f","#4eceb3","#439b99","#243d42","#e4514c","#b6383a","#5f3741","#343434","#f4f4dc","#808080"]   
   
   gameOverSprite.src = 'allClear-next-v4-night.png';
   settingsSprite.src = 'settings-next-v4-night.png';
@@ -403,7 +411,7 @@ if (!nightmode) {
 
 else {
   document.body.style.background = "#0e2c44";
-  tileColors = ["#165786","#ffa154","#c17750","#774937","#fec658","#20bb63","#008747","#36c5d0","#0093b4","#165686","#ff5365","#cc3f50","#5a324b","#151515","#efebe8"]
+  tileColors = ["#165786","#ffa154","#c17750","#774937","#fec658","#20bb63","#008747","#36c5d0","#0093b4","#165686","#ff5365","#cc3f50","#5a324b","#101417","#efebe8","#919191"]
 
   gameOverSprite.src = 'allClear-next-v4.png';
   settingsSprite.src = 'settings-next-v4.png';
@@ -445,7 +453,7 @@ function setMenu() {
   difficultySlider.x = difficultySlider.range[difficulty.setting-1] //cause array starts at 0
 
    gameoverBox = new menu( midX , midY , 350,170,15,gameOverSprite,"gameOver",menufps); //x, y, frame width, frame height, number of frames, name of the frame sprite, fps = every n.th frame it should update
-   settingsBox = new menu( midX , midY , 350,800,15,settingsSprite,"settings",menufps);
+   settingsBox = new menu( midX , midY , 300,650,15,settingsSprite,"settings",menufps);
 }
 
 
@@ -469,11 +477,11 @@ function makeGrid(res) {
      pathGrid[x][y] = { row: x, col: y, walkable: true, gCost: Infinity, hCost: Infinity, fCost: Infinity, parent: null }
 
      if ( difficulty.fixedTiles && Math.random() < 0.15 ) {  nextGrid[x][y].color = 14; }
-     if ( difficulty.permanentTiles && Math.random() < 0.15 ) { nextGrid[x][y].color = 13; }
+     if ( difficulty.permanentTiles && Math.random() < 0.15 ) { nextGrid[x][y].color = 15; }
      }
    }
 
-  mergeTiles();
+ mergeTiles();
 }
 
 function makePalette() { 
@@ -654,8 +662,9 @@ function renderTiles() {
       case 2: thisTile.moveTile();thisTile.show(); busy = true; break; //moving
   //  case 1: thisTile.scaleTile();thisTile.show(x,y); break; //disappearing after being clicked on
       }
-      // thisTile.debug(x,y);
-      if (thisTile.color == 14) { thisTile.whiteTileCenter() }      
+  //      thisTile.debug(x,y);
+      if (thisTile.color == 14) { thisTile.whiteTileCenter() }
+      if (thisTile.color == 15) { thisTile.grayTileCenter() }
       //console.log(thisTile.state)
       }}
 
@@ -733,6 +742,8 @@ function highScore(x) {
 }
 
 function writeScore() {
+
+    if ( makeGrid.colorTiles > writeScore.totalTiles) { writeScore.totalTiles = makeGrid.colorTiles }
   
     if (highScore.totalScore - writeScore.score > 1000) {writeScore.score += 1000 }
       else if (highScore.totalScore - writeScore.score > 100) {writeScore.score += 100 }
@@ -850,6 +861,7 @@ function gameClick(e) {
   if ( nextGrid[x][y].state && combinedVpath.some(e => e.x == x && e.y == y && e.state )) { pathLogicSelect(x,y,true); return; }
   if ( nextGrid[x][y].state && nextGrid[x][y].color < 13 ) { nextClick(x,y); return; }
   if ( nextGrid[x][y].state && nextGrid[x][y].color == 14 ) { convertTiles(x,y); return; }
+  if ( nextGrid[x][y].state && nextGrid[x][y].color == 15 ) { convertTiles(x,y); return; }
   
 // if ( vPath.length && vPath.some(e => e.x == x && e.y == y) ) { convertVpath(); return }
 }
@@ -907,6 +919,7 @@ function nextClick(u,v) {
             nextGrid[x][from].color = nextGrid[x][ from-1 <= 0 ? 0 : from-1 ].color;
             nextGrid[x][from].ry = nextGrid[x][ from-1 <= 0 ? 0 : from-1 ].ry //(from-1) * tileSize // needs to be amount traveled
             nextGrid[x][from].state = 2;
+            nextGrid[x][from].size = tileSize;
             from--
             }
         
@@ -987,7 +1000,7 @@ function nextClick(u,v) {
 
   //despawnUnmovable(); // setTimeout(despawnUnmovable, 1600)
     difficulty(score,thisColor); //calcualte removes
-  if (difficulty.fixedTiles) { dropTiles(); }
+  if (convertVpath.checkFloatingTiles) { convertVpath.checkFloatingTiles = false; dropTiles(); }
     validatePath(); //if there is a path, check if its still valid
     nextMatrix();
     gameOver();
@@ -1090,15 +1103,16 @@ function convertTiles(u,v) { //converts a cluster to different colored tiles (us
           if ( Math.random() > 0.5 ) { color = someRandomColor(); }
           
           convertTiles.loadTiles++
-          nextGrid[x][y] = new tile(x,y,x,y,color,3,) //state,
+          nextGrid[x][y] = new tile(x,y,x,y,color,3) //state,
           nextGrid[x][y].size = tileSize * 0.6
           nextGrid[x][y].reload = true;
+          nextGrid[x][y].cluster = undefined; //this stops a despawn anim bug that flashes every cluster 0 tiles.
         }
    }}
   busy = true;
   roundCorners();
   validatePath();
-//next matrix is called from drop tiles, which is called when tiles are done converting.
+//nextmatrix is called from drop tiles, which is called when tiles are done converting.
 //its possible to click the tile before nextmatrix done runing, so it acts as a cluster zero tile, which makes a weird flashing animation
 
 }
@@ -1155,6 +1169,7 @@ function dropTiles() { //drops folating tiles
             nextGrid[x][from].color = nextGrid[x][ from-1 <= 0 ? 0 : from-1 ].color;
             nextGrid[x][from].ry = nextGrid[x][ from-1 <= 0 ? 0 : from-1 ].ry;
             nextGrid[x][from].state = 2;
+            nextGrid[x][from].size = tileSize; //if converted tiles didn't have a time to "load" they can fall while arent full size, this prevents it.
             from--
             }
         
@@ -1164,7 +1179,7 @@ function dropTiles() { //drops folating tiles
         }
        }
   nextMatrix();
-  roundCorners();
+  roundCorners()
   busy = true;
 }
 
@@ -1300,11 +1315,11 @@ function pathLogicSelect(x,y,colorSelectorClick) {
      target[0] = new visualPath(x,y,1,13,origin); //x,y, state, color, original array, color select value
      target.length = 1;
 
-     if (x && nextGrid[x-1][y].color )  { target.push( new visualPath(x-1,y,1, 14,origin, nextGrid[x-1][y].color ));} //left
-     if (y && nextGrid[x][y-1].color )  { target.push( new visualPath(x,y-1,1, 14,origin, nextGrid[x][y-1].color ));} //bottom
+     if (x && nextGrid[x-1][y].color && nextGrid[x-1][y].color != 13 )  { target.push( new visualPath(x-1,y,1, 14,origin, nextGrid[x-1][y].color ));} //left
+     if (y && nextGrid[x][y-1].color && nextGrid[x][y-1].color != 13 )  { target.push( new visualPath(x,y-1,1, 14,origin, nextGrid[x][y-1].color ));} //bottom
  
-     if (x < xSize-1 && nextGrid[x+1][y].color ) { target.push( new visualPath(x+1,y,1, 14,origin, nextGrid[x+1][y].color ));} //right
-     if (y < ySize-1 && nextGrid[x][y+1].color ) { target.push( new visualPath(x,y+1,1, 14,origin, nextGrid[x][y+1].color ));} //top
+     if (x < xSize-1 && nextGrid[x+1][y].color && nextGrid[x+1][y].color != 13 ) { target.push( new visualPath(x+1,y,1, 14,origin, nextGrid[x+1][y].color ));} //right
+     if (y < ySize-1 && nextGrid[x][y+1].color && nextGrid[x][y+1].color != 13 ) { target.push( new visualPath(x,y+1,1, 14,origin, nextGrid[x][y+1].color ));} //top
      }
     
   function mergePath() { //merges path, and color selectors before displaying them
@@ -1389,6 +1404,7 @@ function pathLogicSelect(x,y,colorSelectorClick) {
 
 
 convertVpath.tiles = 0;
+convertVpath.checkFloatingTiles = false;
 function convertVpath() {
 
     updateUndoValues(null);
@@ -1415,6 +1431,8 @@ function convertVpath() {
   endColorSelect.length = 0;
   vPath.length = 0;
   combinedVpath.length = 0;
+
+  convertVpath.checkFloatingTiles = true;
 
   nextMatrix();
   roundCorners();
@@ -1786,6 +1804,7 @@ if (moveSlider.called) {
             resetTileCount();
             makeGrid();
             nextMatrix();
+            writeScore.totalTiles = makeGrid.colorTiles;
             roundCorners(); 
      break;
      case 4: difficulty(0,difficulty.removal.color); break;
