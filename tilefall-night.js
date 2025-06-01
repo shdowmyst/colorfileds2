@@ -38,21 +38,14 @@
   highScore.totalScore = 0;
   writeScore.score = 0;
   
-  difficulty.removal = { value:100,color:0 }
+  difficulty.removal = { value:0,color:0 }
   difficulty.setting = 4; // 1: every 3 tile let you remove a single one. //2 same color as last 3 tiles //3 removes limited by number of colors //4 same, but also limited by color  last 3tile //5 no removes at all.
   difficulty.verticalMove = true;
   
- // checkSettings.fixedTiles = true; // unmovable tiles, fixed tiles, tiles that dont fall with a better name
- // checkSettings.permanentTiles = true; //tiles that cant be removed.
-
-  checkSettings.preset = 5;
-  checkSettings.paths = 5;
-  checkSettings.pathState = false;
-  checkSettings.fixedTilesConvertLimit = 0;
-  checkSettings.fixedTilesConverState = false;
-  checkSettings.permanentTilesConvertLimit = 0;
-  checkSettings.permanentTilesConvertState = false;
-  checkSettings.percent = ["off","<10%","20%","30%","40%","50%","60%","70%","80%","90%","never"]
+  checkSettings.fixedTiles = 0; // unmovable tiles, fixed tiles, tiles that dont fall with a better name
+  checkSettings.permanentTiles = 0; //tiles that cant be removed.
+  checkSettings.paths = 1;
+  checkSettings.percent = ["off","active","unlocked" ]
 
   moveSlider.called = 0;
  //menu stuff
@@ -108,7 +101,7 @@
   gameOverSprite.src = 'allClear-next-v4.png';
 
   const settingsSprite = new Image();
-  settingsSprite.src = 'settings-next-v4-s.png';
+  settingsSprite.src = 'settings-next-v7.png';
 
 class tile {
   
@@ -206,12 +199,36 @@ class tile {
   
   ctx.roundRect(this.rx + offset, this.ry + offset, this.size + xmoveOffset, this.size + ymoveOffset, [this.topleft, this.topright, this.bottomright, this.bottomleft]); //x,y, size x, size y //[this.topleft, this.topright, this.bottomright, this.bottomleft]
   ctx.fill();
-  }
+
+
+      if ( checkSettings.fixedTiles != 2 && this.color == 14 && this.ry <= bgFill.animPosition && this.ry + this.size > bgFill.animPosition ) {
+
+          ctx.fillStyle = "rgba(0,0,0,0.25)"
+          ctx.fillRect(this.rx + offset, bgFill.animPosition + offset, this.size + xmoveOffset, this.ry + this.size - bgFill.animPosition + ymoveOffset ) 
+          }
+          
+      else if ( checkSettings.fixedTiles != 2 && this.color == 14 && this.ry > bgFill.animPosition ) {
+          ctx.fillStyle = "rgba(0,0,0,0.25)"
+          ctx.fillRect(this.rx + offset, this.ry + offset, this.size + xmoveOffset, this.size + ymoveOffset)
+          }
+
+      if ( checkSettings.permanentTiles != 2 && this.color == 15 && this.ry <= bgFill.animPosition && this.ry + this.size > bgFill.animPosition ) {
+
+          ctx.fillStyle = "rgba(0,0,0,0.25)"
+          ctx.fillRect(this.rx + offset, bgFill.animPosition + offset, this.size + xmoveOffset, this.ry + this.size - bgFill.animPosition + ymoveOffset ) 
+          }
+          
+      else if ( checkSettings.permanentTiles != 2 && this.color == 15 && this.ry > bgFill.animPosition ) {
+          ctx.fillStyle = "rgba(0,0,0,0.25)"
+          ctx.fillRect(this.rx + offset, this.ry + offset, this.size + xmoveOffset, this.size + ymoveOffset)
+          }
+
+}
 
   whiteTileCenter() {
   
   ctx.beginPath();
-  ctx.fillStyle = "#bbbbbb"
+  ctx.fillStyle = "#d8d4d2"
 
   let offset = this.size / 3
   ctx.roundRect(this.rx + offset , this.ry + offset , this.size / 3 , this.size / 3, [this.topleft, this.topright, this.bottomright, this.bottomleft]);
@@ -233,7 +250,7 @@ class tile {
 
   ctx.fillStyle = "black";
   ctx.font = "12px arial";
-  ctx.fillText(  /* yi + ':' + xi  's:' + this.state + 'c:' + ("x:" + x + " y:" + y ) */ this.color, this.rx + 25, this.ry + 25) }
+  ctx.fillText(  /* yi + ':' + xi  's:' + this.state + 'c:' + ("x:" + x + " y:" + y ) */ this.rx, this.rx + 25, this.ry + 25) }
 }
 
 class visualPath {
@@ -270,7 +287,6 @@ class visualPath {
   ctx.fill();
   }
 }
-
 
 class menu {
 
@@ -441,49 +457,43 @@ function setMenu() {
   highScoreText = new menuText("zero", midX , midY - 10 ) // text here is more of a palceholder.
   
   //tile size slider
-  tileSizeSlider = new slider(midX,midY-188,midX-55,midX+30,9) // x , y , start poin , end point , steps,
+  tileSizeSlider = new slider(midX,midY-179,midX-55,midX+30,9) // x , y , start poin , end point , steps,
   tileSizeSlider.range = sliderArray(tileSizeSlider.steps,tileSizeSlider.high,tileSizeSlider.low); 
   tileSizeSlider.x = tileSizeSlider.range[ getIndex(tileSizeSteps, tileSize)] // need to find index of current tile size and match it to slider position cause mid game can call setmenu
 
   //roundness slider
-  roundnessSlider = new slider(midX,midY-145,midX-55,midX+30,11)
+  roundnessSlider = new slider(midX,midY-128,midX-55,midX+30,11)
   roundnessSlider.range = sliderArray(roundnessSlider.steps,roundnessSlider.high,roundnessSlider.low); 
-  roundnessSlider.x =  roundnessSlider.range[ getIndex( roundnessSteps, tileRoundness) ] //starting position of the slider, in the range array
+  roundnessSlider.x =  roundnessSlider.range[ getIndex( roundnessSteps, tileRoundness) ] //starting position of the slider, in the range arrayí
 
   //color slider
-  colorSlider = new slider(midX,midY-104,midX-80,midX+30,11) //x,y,lower limit in pixels from center of canvas ,higher limit, steps
+  colorSlider = new slider(midX,midY+180,midX-80,midX+40,11) //x,y,lower limit in pixels from center of canvas ,higher limit, steps
   colorSlider.range = sliderArray(colorSlider.steps,colorSlider.high,colorSlider.low);
   colorSlider.x = colorSlider.range[makeGrid.colors-2] //-2 cause colors start at two, and array starts at 0.
 
-  //preset slider
-  presetSlider = new slider(midX,midY-33,midX-144,midX+60,8) //x,y,lower limit in pixels from center of canvas ,higher limit, steps
-  presetSlider.range = sliderArray(presetSlider.steps,presetSlider.high,presetSlider.low);
-  presetSlider.x = presetSlider.range[5] //cause array starts at 0
-
   //difficulty slider also known as single tile remove behavior
-  difficultySlider = new slider(midX,midY+38,midX-141,midX+60,5) //x,y,lower limit in pixels from center of canvas ,higher limit, steps
+  difficultySlider = new slider(midX,midY-75,midX-45,midX+35,5) //x,y,lower limit in pixels from center of canvas ,higher limit, steps
   difficultySlider.range = sliderArray(difficultySlider.steps,difficultySlider.high,difficultySlider.low);
   difficultySlider.x = difficultySlider.range[difficulty.setting-1]
 
   //path slider
-  pathSlider = new slider(midX,midY+146,midX-141,midX+46,10) //x,y,lower limit in pixels from center of canvas ,higher limit, steps
+  pathSlider = new slider(midX,midY-22,midX-45,midX+80,2) //x,y,lower limit in pixels from center of canvas ,higher limit, steps
   pathSlider.range = sliderArray(pathSlider.steps,pathSlider.high,pathSlider.low);
   pathSlider.x = pathSlider.range[checkSettings.paths]
 
   //fixed tiles, white tiles, floating tiles, really should use one name for that
-  fixedTilesSlider = new slider(midX,midY+214,midX-141,midX+46,11) //x,y,lower limit in pixels from center of canvas ,higher limit, steps
+  fixedTilesSlider = new slider(midX,midY+231,midX-12,midX+40,3) //x,y,lower limit in pixels from center of canvas ,higher limit, steps
   fixedTilesSlider.range = sliderArray(fixedTilesSlider.steps,fixedTilesSlider.high,fixedTilesSlider.low);
-  fixedTilesSlider.x = fixedTilesSlider.range[ checkSettings.fixedTilesConvertLimit ]
+  fixedTilesSlider.x = fixedTilesSlider.range[ checkSettings.fixedTiles ]
 
   //gray tiles? CONSISTENT NAMING DAMN IT
-  permanentTilesSlider = new slider(midX,midY+285,midX-141,midX+46,11) //x,y,lower limit in pixels from center of canvas ,higher limit, steps
+  permanentTilesSlider = new slider(midX,midY+282,midX-30,midX+45,3) //x,y,lower limit in pixels from center of canvas ,higher limit, steps
   permanentTilesSlider.range = sliderArray(permanentTilesSlider.steps,permanentTilesSlider.high,permanentTilesSlider.low);
-  permanentTilesSlider.x = permanentTilesSlider.range[ checkSettings.permanentTilesConvertLimit ]
+  permanentTilesSlider.x = permanentTilesSlider.range[ checkSettings.permanentTiles ]
 
    gameoverBox = new menu( midX , midY , 350,170,15,gameOverSprite,"gameOver",menufps); //x, y, frame width, frame height, number of frames, name of the frame sprite, fps = every n.th frame it should update
    settingsBox = new menu( midX , midY , 300,650,15,settingsSprite,"settings",menufps);
 }
-
 
 function setTileRadius() { roundnessSteps = Array.from({ length: 11 }, (_,i) => (tileSize / 2) / 10 * i); }
 
@@ -504,8 +514,8 @@ function makeGrid(res) {
      nextGrid[x][y] = new tile(x,y,x,y,makeGrid.colorLookup[Math.floor(Math.random() * makeGrid.colors)],4) // rx,ry,nx,ny,color,state
      pathGrid[x][y] = { row: x, col: y, walkable: true, gCost: Infinity, hCost: Infinity, fCost: Infinity, parent: null }
 
-     if ( checkSettings.fixedTilesConvertLimit && Math.random() < 0.15 ) {  nextGrid[x][y].color = 14; }
-     if ( checkSettings.permanentTilesConvertLimit && Math.random() < 0.15 ) { nextGrid[x][y].color = 15; }
+     if ( checkSettings.fixedTiles && Math.random() < 0.15 ) {  nextGrid[x][y].color = 14; }
+     if ( checkSettings.permanentTiles && Math.random() < 0.15 ) { nextGrid[x][y].color = 15; }
      }
    }
  mergeTiles();
@@ -674,6 +684,8 @@ function renderTiles() {
 
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
+    bgFill();
+
    for (let x = 0; x < xSize; x++) {
     for (let y = 0; y < ySize; y++) {
   
@@ -688,7 +700,7 @@ function renderTiles() {
       case 2: thisTile.moveTile();thisTile.show(); busy = true; break; //moving
   //  case 1: thisTile.scaleTile();thisTile.show(x,y); break; //disappearing after being clicked on
       }
-  //      thisTile.debug(x,y);
+  //    thisTile.debug(x,y);
       if (thisTile.color == 14) { thisTile.whiteTileCenter() }
       if (thisTile.color == 15) { thisTile.grayTileCenter() }
       //console.log(thisTile.state)
@@ -730,10 +742,9 @@ function renderTiles() {
                   difficultySlider.fadeIn(); difficultySlider.show(difficulty.setting);
                   roundnessSlider.fadeIn(); roundnessSlider.show(tileRoundness);
                   tileSizeSlider.fadeIn(); tileSizeSlider.show(newtileSize);
-                  presetSlider.fadeIn(); presetSlider.show(checkSettings.preset);
                   pathSlider.fadeIn(); pathSlider.show( checkSettings.percent[checkSettings.paths] );
-                  permanentTilesSlider.fadeIn(); permanentTilesSlider.show( checkSettings.percent[ checkSettings.permanentTilesConvertLimit ] );
-                  fixedTilesSlider.fadeIn(); fixedTilesSlider.show( checkSettings.percent[ checkSettings.fixedTilesConvertLimit ] );
+                  permanentTilesSlider.fadeIn(); permanentTilesSlider.show( checkSettings.percent[ checkSettings.permanentTiles ] );
+                  fixedTilesSlider.fadeIn(); fixedTilesSlider.show( checkSettings.percent[ checkSettings.fixedTiles ] );
                   busy = true
                   break;
 
@@ -742,10 +753,9 @@ function renderTiles() {
                   difficultySlider.show(difficulty.setting);
                   roundnessSlider.show(tileRoundness);
                   tileSizeSlider.show(newtileSize);
-                  presetSlider.show(checkSettings.preset);
                   pathSlider.show( checkSettings.percent[checkSettings.paths] );
-                  permanentTilesSlider.show( checkSettings.percent[ checkSettings.permanentTilesConvertLimit ] );
-                  fixedTilesSlider.show( checkSettings.percent[ checkSettings.fixedTilesConvertLimit ] );
+                  permanentTilesSlider.show( checkSettings.percent[  checkSettings.permanentTiles ] );
+                  fixedTilesSlider.show( checkSettings.percent[ checkSettings.fixedTiles ] );
                   busy = true
                   break;
 
@@ -754,15 +764,14 @@ function renderTiles() {
                   difficultySlider.fadeOut(); difficultySlider.show(difficulty.setting);
                   roundnessSlider.fadeOut(); roundnessSlider.show(tileRoundness);
                   tileSizeSlider.fadeOut(); tileSizeSlider.show(newtileSize);
-                  presetSlider.fadeOut(); presetSlider.show(checkSettings.preset);
                   pathSlider.fadeOut(); pathSlider.show( checkSettings.percent[checkSettings.paths] );
-                  permanentTilesSlider.fadeOut(); permanentTilesSlider.show( checkSettings.percent[ checkSettings.permanentTilesConvertLimit ] );
-                  fixedTilesSlider.fadeOut(); fixedTilesSlider.show( checkSettings.percent[checkSettings.fixedTilesConvertLimit ] );
+                  permanentTilesSlider.fadeOut(); permanentTilesSlider.show( checkSettings.percent[ checkSettings.permanentTiles ] );
+                  fixedTilesSlider.fadeOut(); fixedTilesSlider.show( checkSettings.percent[ checkSettings.fixedTiles ] );
                   busy = true
                   break;
           }
                
-//         clickBoxHelper();
+      //   clickBoxHelper();
 
        clickConfirm();
 
@@ -776,13 +785,14 @@ function highScore(x) {
 
   let score = Math.pow((x-1),2) * makeGrid.colors
   //let score = Math.pow((x-1),(makeGrid.colors / 4)) * makeGrid.colors
-  highScore.totalScore += score;
+  highScore.totalScore += x // score;
 }
 
 function tilePercent() { 
   if ( makeGrid.colorTiles > writeScore.totalTiles) { writeScore.totalTiles = makeGrid.colorTiles }
-  return 100 - Math.round(makeGrid.colorTiles / writeScore.totalTiles * 100)
+  return Math.round(makeGrid.colorTiles / writeScore.totalTiles * 100)
 }
+
 
 function writeScore() {
   
@@ -895,16 +905,15 @@ function despawnUnmovable() { //despawns white tiles when no valid tiles touchin
 
 function gameClick(e) {
 
-  let x = Math.trunc((e.clientX - canvas.offsetLeft + window.pageXOffset) / tileSize) //, 
-  let y = Math.trunc((e.clientY - canvas.offsetTop + window.pageYOffset) / tileSize) //}
+  let x = Math.trunc((e.clientX - canvas.offsetLeft + window.pageXOffset) / tileSize) 
+  let y = Math.trunc((e.clientY - canvas.offsetTop + window.pageYOffset) / tileSize)
   
-  if ( checkSettings.pathState && !nextGrid[x][y].state) { pathLogicSelect(x,y,false); return }
-  if ( checkSettings.pathState && nextGrid[x][y].state && combinedVpath.some(e => e.x == x && e.y == y && e.state )) { pathLogicSelect(x,y,true); return; }
+  if ( checkSettings.paths && !nextGrid[x][y].state) { pathLogicSelect(x,y,false); return }
+  if ( checkSettings.paths && nextGrid[x][y].state && combinedVpath.some(e => e.x == x && e.y == y && e.state )) { pathLogicSelect(x,y,true); return; }
   if ( nextGrid[x][y].state && nextGrid[x][y].color < 13 ) { nextClick(x,y); return; }
-  if ( checkSettings.fixedTilesConverState && nextGrid[x][y].state && nextGrid[x][y].color == 14 ) { convertTiles(x,y); return; }
-  if ( checkSettings.permanentTilesConvertState && nextGrid[x][y].state && nextGrid[x][y].color == 15 ) { convertTiles(x,y); return; }
-  
-// if ( vPath.length && vPath.some(e => e.x == x && e.y == y) ) { convertVpath(); return }
+  if ( nextGrid[x][y].color == 14 && (checkSettings(x,y) || checkSettings.fixedTiles == 2)) { convertTiles(x,y); return; }
+  if ( nextGrid[x][y].color == 15 && (checkSettings(x,y) || checkSettings.permanentTiles == 2)) { convertTiles(x,y); return; }
+  if ( vPath.length && vPath.some(e => e.x == x && e.y == y) ) { convertVpath(); return }
 }
 
 nextClick.left = 1
@@ -977,10 +986,7 @@ function nextClick(u,v) {
 
   function findEmptyColl() { //find the and empty column, used when no white tiles are present.
     
-    let leftSide;
-    let rightSide;
     let gap;
-
     let half = Math.floor(xSize / 2);
 
     for (let x = nextClick.left; x < xSize - nextClick.right; x++) {
@@ -988,8 +994,8 @@ function nextClick(u,v) {
          if (nextGrid[x].every( el => el.state == 0) ) { gap = x; break; }
         }
     
-      if ( gap <= half ) { nextClick.left += 1; moveLeftSide(gap)}
-      else if (gap > half) { nextClick.right += 1; moveRightSide(gap) }
+      if ( gap <= half ) { nextClick.left += 1; moveLeftSide(gap); }
+      else if ( gap > half ) { nextClick.right += 1; moveRightSide(gap); }
   }
 
 
@@ -1039,13 +1045,14 @@ function nextClick(u,v) {
 
   //despawnUnmovable(); // setTimeout(despawnUnmovable, 1600)
     difficulty(score,thisColor); //calcualte removes
-    checkSettings();
-  if (convertVpath.checkFloatingTiles) { convertVpath.checkFloatingTiles = false; dropTiles(); }
+    if (convertVpath.checkFloatingTiles) { convertVpath.checkFloatingTiles = false; dropTiles(); }
     validatePath(); //if there is a path, check if its still valid
     nextMatrix();
     gameOver();
     roundCorners();
     if (score > 1) { highScore(score) } //calculate score
+
+    bgFill.position += (score * bgFill.offset)
     busy = true;
 }
 
@@ -1341,11 +1348,7 @@ function pathLogicSelect(x,y,colorSelectorClick) {
   
   if (!valid || pEnd.length || pStart.length) { //some other state 0 tile been clicked, remove path.
       
-      pEnd.length = 0;
-      pStart.length = 0;
-      pStart.lock = false;
-      pEnd.lock = false;
-      combinedVpath.forEach(e => e.state = 3);
+      resetVpath();
       busy = true;
       console.log("some other state 0 tile been clicked");
       return;}
@@ -1440,6 +1443,16 @@ function pathLogicSelect(x,y,colorSelectorClick) {
              pEnd.lock = true;
              console.log("end locked") }
   }
+}
+
+function resetVpath() {
+
+  pEnd.length = 0;
+  pStart.length = 0;
+  pStart.lock = false;
+  pEnd.lock = false;
+  combinedVpath.forEach(e => e.state = 3);
+
 }
 
 
@@ -1693,45 +1706,17 @@ function gameOver() {
 }
 
 function victory() {
-/*
-   function rnd(limit){ return Math.round(Math.random() * limit) }
- 
-   let rndtileX = 0//rnd(xSize-8) 
-   let rndtileY = rnd(ySize-1)
- 
-   for (let r = 0 ; r < xSize; r++) { 
- 
-       nextGrid[rndtileY][rndtileX+r].size = tileSize;
-       nextGrid[rndtileY][rndtileX+r].state = 5;
-       }
- 
-   nextGrid[rndtileY][rndtileX].size = tileSize
-   nextGrid[rndtileY][rndtileX].state = 6
- 
-  // console.log(nextGrid[randomtileY][randomtileX].state)
-   nextGrid[randomtileY][randomtileX].size = tileSize;
-   nextGrid[randomtileY][randomtileX].state = 6;
- 
- //if (randomtileX+2 < xSize) { 
-   nextGrid[randomtileY][randomtileX+1].size = tileSize-5; 
-   nextGrid[randomtileY][randomtileX+1].state = 5;
-   
-   nextGrid[randomtileY][randomtileX+2].size = tileSize-10; 
-   nextGrid[randomtileY][randomtileX+2].state = 5;
- 
-   nextGrid[randomtileY][randomtileX+3].size = tileSize-15; 
-   nextGrid[randomtileY][randomtileX+3].state = 5;
- 
- //if (randomtileY+2 < ySize) { 
-  */
 }
 
-function checkSettings() {
 
-  if ( checkSettings.paths == 1 || checkSettings.paths && tilePercent() >= checkSettings.paths * 10 ) { checkSettings.pathState = true }
-  if ( checkSettings.fixedTilesConvertLimit == 1 || checkSettings.fixedTilesConvertLimit && tilePercent() >= checkSettings.fixedTilesConvertLimit * 10 ) { checkSettings.fixedTilesConverState = true } 
-  if ( checkSettings.permanentTilesConvertLimit == 1 || checkSettings.permanentTilesConvertLimit && tilePercent() >= checkSettings.permanentTilesConvertLimit * 10 ) { checkSettings.permanentTilesConvertState = true }
+function checkSettings(u,v) { //this could use some optimization not to run trough the end.
 
+      for (let y = 0, lastY = 0; y < ySize; y++) {
+     for (let x = 0; x < xSize; x++) {
+
+    if ( nextGrid[u][v].cluster == nextGrid[x][y].cluster && nextGrid[x][y].ny + tileSize >= bgFill.position ) { return false } 
+    }}
+    return true;
 }
 
 function difficulty(score,color) {
@@ -1800,10 +1785,9 @@ const getIndex = (arr, val) => arr.findIndex((x) => x == val);
 
 function moveSlider(e) {
 
-  let update = tileRoundness;
+  let update = tileRoundness
   let offset = e.clientX - canvas.offsetLeft + startOffset
-
-//the most overcomplicated code for a simple problem so far:
+  //the most overcomplicated code for a simple problem so far:
 
   switch (activeSlider) {
 
@@ -1812,76 +1796,93 @@ function moveSlider(e) {
 
     case 2: roundnessSlider.x = getClosestSliderPosition(offset, roundnessSlider.range);
             tileRoundness = roundnessSteps[ getIndex(roundnessSlider.range, roundnessSlider.x) ] ; 
-            if (update != tileRoundness ) { //make sure to only update roundness when it actually changes
+            if ( update != tileRoundness ) { //make sure to only update roundness when it actually changes
             roundCorners(); } break;
 
     case 3: colorSlider.x = getClosestSliderPosition(offset, colorSlider.range); 
-           makeGrid.colors = getIndex(colorSlider.range, colorSlider.x) + 2 ; break;
+            makeGrid.colors = getIndex(colorSlider.range, colorSlider.x) + 2 ; break;
 
     case 4: difficultySlider.x = getClosestSliderPosition(offset, difficultySlider.range );
             difficulty.setting = getIndex(difficultySlider.range, difficultySlider.x) + 1 ; break;
 
-    case 5: pathSlider.x = getClosestSliderPosition(offset, pathSlider.range );
+    case 5: pathSlider.x = getClosestSliderPosition(offset, pathSlider.range);
             checkSettings.paths = getIndex(pathSlider.range, pathSlider.x) ; break;
 
-    case 6: fixedTilesSlider.x = getClosestSliderPosition(offset, fixedTilesSlider.range );
-            checkSettings.fixedTilesConvertLimit = getIndex(fixedTilesSlider.range, fixedTilesSlider.x) ; break;
+    case 6: fixedTilesSlider.x = getClosestSliderPosition(offset, fixedTilesSlider.range);
+            checkSettings.fixedTiles = getIndex(fixedTilesSlider.range, fixedTilesSlider.x) ; break;
 
-    case 7: permanentTilesSlider.x = getClosestSliderPosition(offset, permanentTilesSlider.range );
-            checkSettings.permanentTilesConvertLimit = getIndex(permanentTilesSlider.range, permanentTilesSlider.x) ; break;
-
-
+    case 7: permanentTilesSlider.x = getClosestSliderPosition(offset, permanentTilesSlider.range);
+            checkSettings.permanentTiles = getIndex(permanentTilesSlider.range, permanentTilesSlider.x) ; break;           
     }
-  moveSlider.called = 1;
+
+  let newSettings = [newtileSize, makeGrid.colors, checkSettings.paths, checkSettings.fixedTiles, checkSettings.permanentTiles]
+
+  if ( newSettings.every((e, i) => e == moveSlider.prevSliderSettings[i])) { moveSlider.called = false; console.log("not called") }
+  else { moveSlider.called = true; console.log("called") }
 }
 
-function sliderUp(e) {
+// 0 -> 1 - reload
+// 0 -> 2 - reload
+// 1 -> 2
+// 2 -> 1
+// 2 -> 0 - reload
+// 1 -> 0 - reload
 
-if (moveSlider.called) {
+function sliderUp() {
+
+ if (moveSlider.called) {
 
   switch (activeSlider) {
 
-     case 1: animeScale = animeScaleSteps[newtileSize]; //tilesize
+     case 1: 
+             animeScale = animeScaleSteps[newtileSize]; //tilesize
              tileSize = newtileSize;
-            
-             vPath.length = 0;
-             pStart.length = 0;
-             pEnd.length = 0;
-            
+                        
              setCanvasSize();
              nextGrid.length = ySize;
              setMenu();
              setTileRadius();
              tileRoundness = roundnessSteps[ getIndex(roundnessSlider.range, roundnessSlider.x) ];
-     case 3: 
-            undoValues.valid = 0; //color
-            difficulty.removal = { value:0,color:0 } 
-            highScore.totalScore = 0;
-            writeScore.score = 0;
-            
-            vPath.length = 0;
-            pStart.length = 0;
-            pEnd.length = 0;
+     case 3:
+     case 5:
+     case 6:  
+             if ((moveSlider.prevSliderSettings[3] == 1 && checkSettings.fixedTiles == 2) || (moveSlider.prevSliderSettings[3] == 2 && checkSettings.fixedTiles == 1)) { break; } 
+     case 7: 
+             if ((checkSettings.permanentTiles == 2 && moveSlider.prevSliderSettings[4] == 1) || (checkSettings.permanentTiles == 1 && moveSlider.prevSliderSettings[4] == 2)) { break; }
+
+             resetVpath(); if ( activeSlider == 5 ) { break; }
+             
+             undoValues.valid = 0
+             difficulty.removal = { value:0,color:0 } 
+             highScore.totalScore = 0;
+             writeScore.score = 0;
+             makeGrid.loadTiles = 0;
+
+             bgFill.position = 0;
+             bgFill.animPosition = 0;
+             bgFill.state = 2;
+
+             nextClick.left = 1
+             nextClick.right = 1
             
             resetTileCount();
             makeGrid();
             nextMatrix();
             writeScore.totalTiles = makeGrid.colorTiles;
+            bgFill.offset = ctx.canvas.height / makeGrid.colorTiles
             roundCorners(); 
      break;
      case 4: difficulty(0,difficulty.removal.color); break;
-     case 5: checkSettings.pathState = false; checkSettings(); break;
-     case 6: checkSettings.fixedTilesConvertState = false; checkSettings(); break;
-     case 7: checkSettings.permanentTilesConvertState = false; checkSettings(); break;
-
      }  
   }
   canvas.removeEventListener('pointermove', moveSlider);
   canvas.removeEventListener('pointerup', sliderUp);
-  moveSlider.called = 0;
+  moveSlider.called = false;
 }
 
 function SliderSettings(e) {
+
+  moveSlider.prevSliderSettings = [newtileSize, makeGrid.colors, checkSettings.paths, checkSettings.fixedTiles, checkSettings.permanentTiles]
 
   function assignEvent() {
     canvas.addEventListener('pointermove', moveSlider)
@@ -1890,7 +1891,6 @@ function SliderSettings(e) {
 
   let x = ctx.canvas.width / 2
   let y = ctx.canvas.height / 2
-
   let coords = { x: e.clientX - canvas.offsetLeft, y: e.clientY - canvas.offsetTop }
 
      if(settingsBox.state == 2)  {
@@ -1965,18 +1965,165 @@ function clickBoxHelper() { //temporary function to help visualize a button
 
   ctx.fillStyle = "hsla(181,100%,48%,0.5)";
   ctx.beginPath();
-  ctx.roundRect(x+xo,y+yo,sx,sy,10) // reset button
+  //ctx.roundRect(x+xo,y+yo,sx,sy,10) // reset button
+  
+  ctx.roundRect(tileSizeSlider.x+20,tileSizeSlider.y,20,32,0)
   ctx.fill();
 }
 
 function settingsClick(e) {
 
+  // this function is called on "click" which is mouse down and up, since SliderSettings() runs on mouse down, it sets activeSlider to correct one, also sets
+  // moveSlider.prevSliderSettings, so neither of them needs to be called from here. However, sliderUp() triggers before this function since both are on "mouse up";
+  // which kind of sucks cause moveSlider.called is false before this function finishes running so it will never trigger any change in slider up, a workaround
+  // is to call sliderUp(); manually, but its kind of scoffed its runs first, fails, than runs again....
+
   let x = ctx.canvas.width / 2
   let y = ctx.canvas.height / 2
 
   let coords = { x: e.clientX - canvas.offsetLeft, y: e.clientY - canvas.offsetTop }
+  let roundnessnewPos;
+  let tileSizeNewPos;
+
+    function whywouldyouwanttoclickadamnslider() {
+
+    let newSettings = [newtileSize, makeGrid.colors, checkSettings.paths, checkSettings.fixedTiles, checkSettings.permanentTiles]
+    if ( !newSettings.every((e, i) => e == moveSlider.prevSliderSettings[i])) { moveSlider.called = true; sliderUp();  }
+    }
+
+  //moveSlider.prevSliderSettings = [newtileSize, makeGrid.colors, checkSettings.paths, checkSettings.fixedTiles, checkSettings.permanentTiles]
+
 
      if(settingsBox.state == 2)  {
+        // permanentTilesSlider left side arrow  
+        if (coords.x > permanentTilesSlider.x && coords.y > permanentTilesSlider.y && coords.x < permanentTilesSlider.x+20 && coords.y < permanentTilesSlider.y+32) {
+
+            checkSettings.permanentTiles = checkSettings.permanentTiles > 0 ? --checkSettings.permanentTiles : 0
+            permanentTilesSlider.x = permanentTilesSlider.range[ checkSettings.permanentTiles ]
+            whywouldyouwanttoclickadamnslider();
+            //activeSlider = 7;
+          }
+
+        // permanentTilesSlider right side arrow
+        if (coords.x > permanentTilesSlider.x+100 && coords.y > permanentTilesSlider.y && coords.x < permanentTilesSlider.x+120 && coords.y < permanentTilesSlider.y+32) {
+
+            checkSettings.permanentTiles = checkSettings.permanentTiles < 2 ? ++checkSettings.permanentTiles : 2
+            permanentTilesSlider.x = permanentTilesSlider.range[ checkSettings.permanentTiles ]
+            whywouldyouwanttoclickadamnslider();
+            //activeSlider = 7;
+          }
+
+        // fixedtilesslider left side arrow
+        if (coords.x > fixedTilesSlider.x && coords.y > fixedTilesSlider.y && coords.x < fixedTilesSlider.x+20 && coords.y < fixedTilesSlider.y+32) {
+
+            checkSettings.fixedTiles = checkSettings.fixedTiles > 0 ? --checkSettings.fixedTiles : 0
+            fixedTilesSlider.x = fixedTilesSlider.range[ checkSettings.fixedTiles ]
+            whywouldyouwanttoclickadamnslider();
+            //activeSlider = 6;
+          }
+
+        // fixedtilesslider right side arrow
+        if (coords.x > fixedTilesSlider.x+100 && coords.y > fixedTilesSlider.y && coords.x < fixedTilesSlider.x+120 && coords.y < fixedTilesSlider.y+32) {
+
+            checkSettings.fixedTiles = checkSettings.fixedTiles < 2 ? ++checkSettings.fixedTiles : 2
+            fixedTilesSlider.x = fixedTilesSlider.range[ checkSettings.fixedTiles ]
+            whywouldyouwanttoclickadamnslider();
+            //activeSlider = 6;
+          }
+
+        //path slider left side
+        if (coords.x > pathSlider.x && coords.y > pathSlider.y && coords.x < pathSlider.x+20 && coords.y < pathSlider.y+32) {
+
+            checkSettings.paths = checkSettings.paths > 0 ? --checkSettings.paths : 0
+            pathSlider.x = pathSlider.range[ checkSettings.paths ]
+            whywouldyouwanttoclickadamnslider();
+            //activeSlider = 5;
+          }
+
+        //path slider right side
+        if (coords.x > pathSlider.x+100 && coords.y > pathSlider.y && coords.x < pathSlider.x+120 && coords.y < pathSlider.y+32) {
+
+            checkSettings.paths = checkSettings.paths < 1 ? ++checkSettings.paths : 1
+            pathSlider.x = pathSlider.range[ checkSettings.paths ]
+            whywouldyouwanttoclickadamnslider();
+            //activeSlider = 5;
+          } 
+
+        //difficulty slider left side
+        if (coords.x > difficultySlider.x && coords.y > difficultySlider.y && coords.x < difficultySlider.x+20 && coords.y < difficultySlider.y+32) {
+
+            difficulty.setting = difficulty.setting > 1 ? --difficulty.setting : 1
+            difficultySlider.x = difficultySlider.range[ difficulty.setting-1 ]
+            whywouldyouwanttoclickadamnslider();
+            //activeSlider = 4;
+          }
+
+        //difficulty slider right side
+        if (coords.x > difficultySlider.x+100 && coords.y > difficultySlider.y && coords.x < difficultySlider.x+120 && coords.y < difficultySlider.y+32) {
+
+            difficulty.setting = difficulty.setting < 5 ? ++difficulty.setting : 5
+            difficultySlider.x = difficultySlider.range[ difficulty.setting-1 ]
+            whywouldyouwanttoclickadamnslider();
+            //activeSlider = 4;
+          } 
+
+          //color slider left side
+        if (coords.x > colorSlider.x && coords.y > colorSlider.y && coords.x < colorSlider.x+20 && coords.y < colorSlider.y+32) {
+
+            makeGrid.colors = makeGrid.colors > 2 ? --makeGrid.colors : 2
+            colorSlider.x = colorSlider.range[ makeGrid.colors-2 ]
+            whywouldyouwanttoclickadamnslider();
+            //activeSlider = 4;
+          }
+
+        //color slider right side
+        if (coords.x > colorSlider.x+100 && coords.y > colorSlider.y && coords.x < colorSlider.x+120 && coords.y < colorSlider.y+32) {
+
+            makeGrid.colors = makeGrid.colors < 12 ? ++makeGrid.colors : 12
+            colorSlider.x = colorSlider.range[ makeGrid.colors-2 ]
+            whywouldyouwanttoclickadamnslider();
+            //activeSlider = 4;
+          } 
+
+        //roundness slider left side
+        if (coords.x > roundnessSlider.x && coords.y > roundnessSlider.y && coords.x < roundnessSlider.x+20 && coords.y < roundnessSlider.y+32) {
+
+            roundnessnewPos = getIndex(roundnessSlider.range, roundnessSlider.x)
+            roundnessnewPos = roundnessnewPos > 0 ? --roundnessnewPos : 0
+            roundnessSlider.x = roundnessSlider.range[ roundnessnewPos ]
+            tileRoundness = roundnessSteps[ roundnessnewPos ]
+            roundCorners();
+            //activeSlider = 4;
+          }
+
+        //roundness slider right side
+        if (coords.x > roundnessSlider.x+100 && coords.y > roundnessSlider.y && coords.x < roundnessSlider.x+120 && coords.y < roundnessSlider.y+32) {
+
+            roundnessnewPos = getIndex(roundnessSlider.range, roundnessSlider.x)
+            roundnessnewPos = roundnessnewPos < 10 ? ++roundnessnewPos : 10
+            roundnessSlider.x = roundnessSlider.range[ roundnessnewPos ]
+            tileRoundness = roundnessSteps[ roundnessnewPos ]
+            roundCorners();
+            //activeSlider = 4;
+          }
+
+        if (coords.x > tileSizeSlider.x && coords.y > tileSizeSlider.y && coords.x < tileSizeSlider.x+20 && coords.y < tileSizeSlider.y+32) {
+
+            tileSizeNewPos = getIndex(tileSizeSlider.range, tileSizeSlider.x)
+            tileSizeNewPos = tileSizeNewPos > 0 ? --tileSizeNewPos : 0
+            tileSizeSlider.x = tileSizeSlider.range[ tileSizeNewPos ]
+            newtileSize = tileSizeSteps[ tileSizeNewPos ]
+            whywouldyouwanttoclickadamnslider();
+          } 
+
+        if (coords.x > tileSizeSlider.x+100 && coords.y > tileSizeSlider.y && coords.x < tileSizeSlider.x+120 && coords.y < tileSizeSlider.y+32) {
+
+            tileSizeNewPos = getIndex(tileSizeSlider.range, tileSizeSlider.x)
+            tileSizeNewPos = tileSizeNewPos < 8 ? ++tileSizeNewPos : 8
+            tileSizeSlider.x = tileSizeSlider.range[ tileSizeNewPos ]
+            newtileSize = tileSizeSteps[ tileSizeNewPos ]
+            whywouldyouwanttoclickadamnslider();
+          } 
 
         if (coords.x > x+110 && coords.y > y-325  && coords.x < x+150 && coords.y < y-285  )  { //close 
 
@@ -2064,9 +2211,7 @@ function newGame() { // formally known as reset tiles
 
     assingEventListener("none");
 
-    vPath.length = 0;
-    pStart.length = 0;
-    pEnd.length = 0;
+    resetVpath();
     
     undoValues.valid = 0
     difficulty.removal = { value:0,color:0 } 
@@ -2074,9 +2219,12 @@ function newGame() { // formally known as reset tiles
     writeScore.score = 0;
     makeGrid.loadTiles = 0;
 
-    checkSettings.pathState = false
-    checkSettings.fixedTilesConverState = false
-    checkSettings.permanentTilesConvertState = false 
+  //  bgFill.position = 0;
+  //  bgFill.animPosition = 0;
+    bgFill.state = 2;
+
+    nextClick.left = 1
+    nextClick.right = 1
 
    if ( makeGrid.colorTiles + makeGrid.grayTiles > 0 ) {
 
@@ -2093,7 +2241,7 @@ function newGame() { // formally known as reset tiles
      makeGrid();
      nextMatrix();
      writeScore.totalTiles = makeGrid.colorTiles;
-     checkSettings();
+     bgFill.offset = ctx.canvas.height / makeGrid.colorTiles
      roundCorners();
      }
      busy = true;
@@ -2106,11 +2254,9 @@ function newGame() { // formally known as reset tiles
     makeGrid.colorTiles = 0;
     makeGrid.whiteTiles = 0;
     makeGrid.grayTiles = 0;
-    nextClick.left = 1
-    nextClick.right = 1
   }
 
-function resetTiles() { // formally known as default
+function resetTiles() { // formally known as default, also replaced with a reolad, cause screw keeping track of this...
 
 //  sessionStorage.clear();
 
@@ -2128,6 +2274,7 @@ function resetTiles() { // formally known as default
   vPath.length = 0;
   pStart.length = 0;
   pEnd.length = 0;
+  combinedVpath.length = 0;
 
   newtileSize = tileSize = tileSizeSteps[3];  // default 50
   animeScale = animeScaleSteps[newtileSize]; //tilesize
@@ -2191,6 +2338,34 @@ function demo() {
   }
 
 
+bgFill.position = 0;
+bgFill.animPosition = 0;
+bgFill.opacity = 0;
+bgFill.state = 1;
+
+function bgFill() {
+
+  switch ( bgFill.state ) {
+  case 1: bgFill.opacity = Math.min(bgFill.opacity + 0.0015, 0.25); busy = true;  //cant be put in loadtiles cause load tiles called for every tile, not for every frame
+          if (bgFill.opacity == 0.25) { bgFill.state = 3 } break;
+  case 2: bgFill.opacity = Math.max(bgFill.opacity - 0.0015, 0);  busy = true;
+          if (bgFill.opacity == 0)    { bgFill.state = 1; bgFill.animPosition = 0; bgFill.position = 0; } break;          
+          }
+
+//  if (bgFill.opacity < 0.25) { bgFill.opacity = Math.min(bgFill.opacity + 0.01, 0.25) }
+//  if (bgFill.opacity > 0.25) { bgFill.opacity = Math.max(bgFill.opacity - 0.01, 0.25) }
+
+  if (bgFill.position > bgFill.animPosition)  {  bgFill.animPosition +=  animeScale / 2; busy = true; } 
+
+// let left = (nextClick.left-1) * tileSize
+// let right = ctx.canvas.width - left - ((nextClick.right - 1)  * tileSize)
+   ctx.beginPath(); 
+   ctx.fillStyle = "rgba(0,0,0," + bgFill.opacity + ")"
+   ctx.roundRect( 0, bgFill.animPosition, ctx.canvas.width, ctx.canvas.height - bgFill.animPosition, tileRoundness )
+   ctx.fill();
+}
+
+
 var secondsPassed, oldTimeStamp, fpsCount = 0
 
 function MeasureFps(timeStamp) {
@@ -2225,5 +2400,6 @@ setCanvasSize();
 makeGrid();
 nextMatrix();
 writeScore.totalTiles = makeGrid.colorTiles;
+bgFill.offset = ctx.canvas.height / makeGrid.colorTiles // (xSize * ySize)
 roundCorners();
 MeasureFps();
