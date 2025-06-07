@@ -1,0 +1,45 @@
+ /* Global Styles */
+    body,html {
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    touch-action: none;
+    }
+
+    body {
+    background: #0e2c44;
+    }
+/*
+    #0e2c44
+    #244b6e
+    @font-face {
+    font-smooth: never;
+    font-family: fixedSysEx;
+    src: url(FSEX300.ttf);
+}
+*/
+    @font-face {
+    font-smooth: auto;
+    font-family: inconsolata;
+    src: url(Inconsolata_SemiExpanded-Bold.ttf);
+}
+
+    #gameField, #scoreField, #garfield {
+    display: block;
+    margin: auto;
+    } 
+
+    #gameField, #garfield {
+    position: fixed;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    }
+
+    #gameField {
+    z-index: 2;
+    }
+
+    #garfield {
+    z-index: 1;
+    }
