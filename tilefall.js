@@ -1893,11 +1893,7 @@ function moveSlider(e) {
 
 function sliderUp() {
 
-console.log("are?")
-
  if (moveSlider.called) {
-
-  console.log("we?")
 
   switch (activeSlider) {
 
