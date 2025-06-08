@@ -106,7 +106,7 @@
   // var temp = 0;
 
   setMenu.area = {state:0}; //blue box over a clicked button
-  setMenu.level = {state:0}; //blue box over a clicked button
+  setMenu.level = {state:0}; //level indicator
 
   const gameOverSprite = new Image();
   gameOverSprite.src = 'allClear-next-v4.png';
@@ -253,7 +253,7 @@ class tile {
   whiteTileCenter() {
   
   ctx.beginPath();
-  ctx.fillStyle = "#d8d4d2"
+  ctx.fillStyle = nightmode ? "#d8d8cc" : "#d8d4d2"
 
   let offset = this.size / 3
   ctx.roundRect(this.rx + offset , this.ry + offset , offset , offset, [this.topleft, this.topright, this.bottomright, this.bottomleft]);
@@ -521,8 +521,10 @@ function setMenu() {
   permanentTilesSlider.range = sliderArray(permanentTilesSlider.steps,permanentTilesSlider.high,permanentTilesSlider.low);
   permanentTilesSlider.x = permanentTilesSlider.range[ checkSettings.permanentTiles ]
 
-   gameoverBox = new menu( midX , midY , 350,170,15,gameOverSprite,"gameOver",menufps); //x, y, frame width, frame height, number of frames, name of the frame sprite, fps = every n.th frame it should update
-   settingsBox = new menu( midX , midY , 300,650,15,settingsSprite,"settings",menufps);
+  gameoverBox = new menu( midX , midY , 350,170,15,gameOverSprite,"gameOver",menufps); //x, y, frame width, frame height, number of frames, name of the frame sprite, fps = every n.th frame it should update
+  settingsBox = new menu( midX , midY , 300,650,15,settingsSprite,"settings",menufps);
+
+  setMenu.level.state = 0;
 }
 
 function setTileRadius() { roundnessSteps = Array.from({ length: 11 }, (_,i) => (tileSize / 2) / 10 * i); }
@@ -785,9 +787,7 @@ function renderTiles() {
                   pathSlider.show( checkSettings.percent[checkSettings.paths] );
                   permanentTilesSlider.show( checkSettings.percent[  checkSettings.permanentTiles ] );
                   fixedTilesSlider.show( checkSettings.percent[ checkSettings.fixedTiles ] );
-
-                  ctx.drawImage(levelSprite, setMenu.level.sx, setMenu.level.sy, 37, 32, setMenu.level.x, setMenu.level.y, 37, 32 )  
-                  
+                  if (setMenu.level.state) { ctx.drawImage(levelSprite, setMenu.level.sx, setMenu.level.sy, 37, 32, setMenu.level.x, setMenu.level.y, 37, 32 )}                  
                   busy = true
                   break;
 
@@ -803,7 +803,8 @@ function renderTiles() {
                   break;
           }
                
-       //  clickBoxHelper();
+    // clickBoxHelper();
+    
     bgFill();
     writeScore();
     clickConfirm();
@@ -1735,9 +1736,16 @@ function gameOver() {
 
       gameoverBox.state = 1; 
       
-      //if (makeGrid.colorTiles == 0) { gameoverText.text = "All clear!"; /* victory(); */ }
-      //else { gameoverText.text = "No more moves."; }
-      gameoverText.text = makeGrid.colorTiles ? "No more moves." : "All clear!"
+      if (makeGrid.colorTiles == 0) { 
+      gameoverText.text = "All clear!"; /* victory(); */ 
+      //gameOverSprite.src = nightmode ? 'allClear-next-v4-nextlevel-night.png' : 'allClear-next-v4-nextlevel.png'; }
+      }
+      else { 
+      gameoverText.text = "No more moves."; 
+      //gameOverSprite.src = nightmode ? 'allClear-next-v4-night.png' : 'allClear-next-v4.png';
+      }
+      
+      //gameoverText.text = makeGrid.colorTiles ? "No more moves." : "All clear!"
   }
 
   //nextGrid[0][0].state == 0 is fixing a bug where for a brief moment, while tiles are "loading in" makeGrid.colorTiles is zero, triggering game over and this is probably the worst way to fix it
@@ -1811,17 +1819,16 @@ function gameOverClick(e) {
 
   let coords = { x: e.clientX - canvas.offsetLeft, y: e.clientY - canvas.offsetTop }
 
-    if (gameoverBox.state == 2 && coords.x > x+38 && coords.y > y+16  && coords.x < x+118 && coords.y < y+57) {  //reset button on game over box
+    if (gameoverBox.state == 2 && coords.x > x+5 && coords.y > y+35  && coords.x < x+165 && coords.y < y+75) {  //new game button on game over box
 
-      setMenu.area = { x:x+38,y:y+16,sx:80,sy:41, state:1 } //reset button area
-      
+      setMenu.area = { x:x+5,y:y+35,sx:160,sy:40, state:1 } //new game button area
       gameoverBox.state = 3;
       newGame();
-    
     }
-    else if ( gameoverBox.state == 2 && coords.x > x-118 && coords.y > y+16  && coords.x < x-38 && coords.y < y+57  )  { //menu botton on game over box
 
-      setMenu.area = { x:x-118,y:y+16,sx:80,sy:41, state:1 }
+    else if ( gameoverBox.state == 2 && coords.x > x-165 && coords.y > y+35  && coords.x < x-5 && coords.y < y+75  )  { //menu botton on game over box
+
+      setMenu.area = { x:x-165,y:y+35,sx:160,sy:40, state:1 }
 
       settingsBox.state = 1; // 1 intro, 2 stay, 3 outro
       gameoverBox.state = 3; //gameover outro
@@ -2006,23 +2013,22 @@ function SliderSettings(e) {
         }  
 }
 
-function clickBoxHelper() { //temporary function to help visualize a button
+function clickBoxHelper() { //function to help visualize a button
 
   let x = ctx.canvas.width / 2
   let y = ctx.canvas.height / 2
 
   //offsett from center
-  let xo = -150
-  let yo = 39
+  let xo = 5
+  let yo = 35
 
   // size of the button
-  let sx = 300;
-  let sy = 130;
+  let sx = 160;
+  let sy = 40;
 
   ctx.fillStyle = "hsla(181,100%,48%,0.5)";
   ctx.beginPath();
   ctx.roundRect(x+xo,y+yo,sx,sy,0) 
-  
   //ctx.roundRect(tileSizeSlider.x+20,tileSizeSlider.y,20,32,0)
   ctx.fill();
 }
@@ -2227,7 +2233,7 @@ function settingsClick(e) {
 
        // let levels = [,{ colors:3,pt:0,ft:0 }, { colors:4,pt:0,ft:0 },{ colors:5,pt:1,ft:1 } ]
 
-          console.log("levelx:",levelx,"levely",levely,"level:",currentLevel)
+       // console.log("levelx:",levelx,"levely",levely,"level:",currentLevel)
 
           if (currentLevel < 11) { makeGrid.colors = currentLevel + 2 }
           else if (currentLevel > 10 && currentLevel < 22 ) { makeGrid.colors = currentLevel - 9 }
@@ -2260,18 +2266,6 @@ function clickConfirm() { //flashes a blue box over clicked button
         if (setMenu.area.state == 20) { setMenu.area.state = 0; }           
 }
 
-function levelConfirm() { //draws a box around selected level
-
-        if (setMenu.level.state == 0) { return }
-        ctx.drawImage(levelSprite, setMenu.level.sx, setMenu.level.sy, 37, 32, setMenu.level.x, setMenu.level.y, 37, 32 )  
-
-//      ctx.drawImage(levelSprite, 0, 0, 37, 32, setMenu.level.x, setMenu.level.y, 37, 32 )
-
-// (image, selected x coord on the image, selected y coord on the iamge, selection width, selection height, x position on canvas, y position on canvas, draw width on canvas, drawn height on canvas)
-// (image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
-// x:x-150,y:y+39,sx:300,sy:130
-
-}
 /*
 function settings(id) {
   
@@ -2355,6 +2349,7 @@ function newGame() { // formally known as reset tiles
     makeGrid.grayTiles = 0;
   }
 
+/*
 function resetTiles() { // formally known as default, also replaced with a reolad, cause screw keeping track of this...
 
 //  sessionStorage.clear();
@@ -2389,25 +2384,30 @@ function resetTiles() { // formally known as default, also replaced with a reola
   roundCorners();
   busy = true;
 }
+*/
 
-window.onresize = function() {
+window.onresize = () => {
     clearTimeout(resizeId);
     resizeId = setTimeout(doneResizing, 500);
 }
 
-function doneResizing() {
+function doneResizing() { //nvm, keeping track of this...
 
   // location.reload();
   assingEventListener("none");
 
-  vPath.length = 0;
-  pStart.length = 0;
-  pEnd.length = 0;
-
-  undoValues.valid = 0;
-  difficulty.removal = { value:0,color:0 };
+  resetVpath();
+    
+  undoValues.valid = 0
+  difficulty.removal = { value:0,color:0 } 
   highScore.totalScore = 0;
   writeScore.score = 0;
+  makeGrid.loadTiles = 0;
+
+  bgFill.state = 2;
+
+  nextClick.left = 1
+  nextClick.right = 1
 
   resetTileCount();
   setCanvasSize();
@@ -2415,6 +2415,7 @@ function doneResizing() {
   makeGrid(1); //dont generate new colors
   nextMatrix();
   writeScore.totalTiles = makeGrid.colorTiles;
+  bgFill.offset = ctx.canvas.height / makeGrid.colorTiles
   roundCorners();
   busy = true;
 }
@@ -2464,9 +2465,20 @@ function bgFill() {
 
 // let left = (nextClick.left-1) * tileSize
 // let right = ctx.canvas.width - left - ((nextClick.right - 1)  * tileSize)
+
   
    backCtx.clearRect(0, 0, backCtx.canvas.width, backCtx.canvas.height);
-   backCtx.fillStyle = nightmode ? "rgba(20,20,20," + bgFill.opacity + ")" : "rgba(10,33,51," + bgFill.opacity + ")"  // "#091c2c"
+
+   if (checkSettings.fixedTiles == 1 || checkSettings.permanentTiles == 1) {
+   backCtx.beginPath();
+   backCtx.moveTo(0, bgFill.animPosition);
+   backCtx.lineTo(backCtx.canvas.width, bgFill.animPosition);
+   backCtx.strokeStyle = nightmode ? "rgba(66,66,66," + bgFill.opacity + ")" : "rgba(90,50,75," + bgFill.opacity + ")"
+   backCtx.lineWidth = 8;
+   backCtx.stroke();
+   }
+
+   backCtx.fillStyle = nightmode ? "rgba(20,20,20," + bgFill.opacity + ")" : "rgba(47,18,36," + bgFill.opacity + ")"  // "rgba(10,33,51," + bgFill.opacity + ")" 
    backCtx.fillRect( 0, bgFill.animPosition, backCtx.canvas.width, backCtx.canvas.height - bgFill.animPosition)
 }
 
