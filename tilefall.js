@@ -465,7 +465,7 @@ if (!nightmode) {
 
 else {
   document.body.style.background = "#0e2c44";
-  tileColors = ["#165786","#ffa154","#c17750","#774937","#fec658","#20bb63","#008747","#36c5d0","#0093b4","#165686","#ff5365","#cc3f50","#5a324b","#101417","#efebe8","#919191"]
+  tileColors = ["#165786","#ffa154","#c17750","#774937","#fec658","#20bb63","#008747","#36c5d0","#0093b4","#165686","#ff5365","#cc3f50","#5a324b","#474747","#efebe8","#919191"]
 
   gameOverSprite.src = 'allClear-next-v4.png';
   settingsSprite.src = 'settings-next-v7.png';
