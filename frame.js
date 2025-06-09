@@ -3,13 +3,14 @@ var box = document.getElementById('box');
 var gameFrame = document.getElementById('gameFrame');
 var bg = document.getElementById('bg')
 var start, scaleunit, percent = 19;
+var nightmode = false;
 
 if (window.innerWidth >= 1400) { startResizing.xs = 1350 }
 else if ( window.innerWidth < 351 ) { startResizing.xs = 350 }
 else { startResizing.xs = (Math.trunc(window.innerWidth / 50) * 50) - 50 }
 
 if (window.innerHeight >= 750) { startResizing.ys = 725 }
-else if ( window.innerHeight < 506 ) { startResizing.ys = 505 }
+else if ( window.innerHeight < 701 ) { startResizing.ys = 700 }
 else { startResizing.ys = (Math.trunc(window.innerHeight / 50) * 50) - 50}
 
 gameFrame.width = startResizing.xs
@@ -41,6 +42,8 @@ function initialiseResize(e) {
 
 function startDrag(e) { //make gradient dragable at Y axes
 
+    if (nightmode) { return }
+
     let delta = start - e.clientY
     start = e.clientY;
     gameFrame.style.pointerEvents = 'none'
@@ -50,7 +53,7 @@ function startDrag(e) { //make gradient dragable at Y axes
     percent = percent > 100 ? 100 : percent;  
     percent = percent <  -10 ? -10 : percent; 
 
-    bg.style.background = 'linear-gradient(30deg, rgba(78,153,194,1) 0%, rgba(78,153,194,1)' + percent + '%, rgba(36,75,110,1) '+ (percent + 10) + '%, rgba(36,75,110,1) 100%)'
+    bg.style.background = 'linear-gradient(30deg, rgba(78,153,194,1) 0%, rgba(78,153,194,1)' + percent + '%, rgba(36,75,110,1) '+ (percent + 10) + '%, rgba(14,44,68,1) 100%)'
 }
 
 function stopDrag(e) {
@@ -77,7 +80,7 @@ function startResizing(e) {
 
    //min size
    if  (startResizing.xs < 351) { startResizing.xs = 350 }
-   if  (startResizing.ys < 506) { startResizing.ys = 505 }
+   if  (startResizing.ys < 701) { startResizing.ys = 700 }
 
    box.style.width = startResizing.xs + 'px'
    box.style.height = startResizing.ys + 'px'
@@ -96,7 +99,8 @@ function stopResizing(e) {
     gameFrame.height = startResizing.ys - 25;
 
     gameFrame.style.pointerEvents='auto';
-    gameFrame.contentWindow.location.reload(true); //only works online cause of cross origin bs
+    //gameFrame.contentWindow.location.reload(true); //only works online cause of cross origin bs
+    gameFrame.contentWindow.childCallback();
 }
 
 window.onresize = function() {
@@ -105,5 +109,32 @@ window.onresize = function() {
   box.style.top = (window.innerHeight / 2 - (startResizing.ys + 25) / 2) + 'px' 
 }
 //make sure iframe only loads when html rendered.
+
+window.parentCallback = () => {
+  
+  let expand = document.getElementById('fullscreen');
+
+  if ( nightmode ) { 
+    nightmode = false 
+    bg.style.background = 'linear-gradient(30deg, rgba(78,153,194,1) 0%, rgba(78,153,194,1)' + percent + '%, rgba(36,75,110,1) '+ (percent + 10) + '%, rgba(14,44,68,1) 100%)'
+    
+    box.style.background = '#244b6e'
+
+    resizeHandle.style.background = expand.style.background = '#386389'
+    resizeHandle.style.color = expand.style.color = '#6bdcff'
+
+    }
+  else { 
+
+    nightmode = true;
+    
+    box.style.background = 'black'
+
+    resizeHandle.style.background = expand.style.background = '#243d42'
+    resizeHandle.style.color = expand.style.color = '#518a95'
+
+    bg.style.background = 'rgb(11, 11, 11)'
+  }
+}
 
 gameFrame.src = 'gameField.html';
