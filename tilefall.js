@@ -461,6 +461,7 @@ if (!nightmode) {
   levelSprite.src = 'levels-n.png';
   
   nightmode = true; 
+  window.parent.parentCallback();
   }
 
 else {
@@ -472,6 +473,7 @@ else {
     levelSprite.src = 'levels.png';
   
   nightmode = false; 
+  window.parent.parentCallback();
   }
 }
 
@@ -1582,7 +1584,7 @@ function aStar(grid,startx,starty,endx,endy) {
   startNode.parent = null; // Initially, the start node has no parent
 
   while (openSet.length > 0) {
-    // Get the node in openSet with the lowest fCost
+
     let currentNode = openSet[0];
     let currentIndex = 0;
     for (let i = 1; i < openSet.length; i++) {
@@ -1592,11 +1594,9 @@ function aStar(grid,startx,starty,endx,endy) {
       }
     }
 
-    // Remove the current node from openSet and add it to closedSet
     openSet.splice(currentIndex, 1);
     closedSet.push(currentNode);
 
-    // If the current node is the end node, we've found the path!
     if (currentNode === endNode) {
       return reconstructPath(currentNode);
     }
@@ -1623,13 +1623,11 @@ function aStar(grid,startx,starty,endx,endy) {
       }
     }
   }
-
-  // If the openSet becomes empty and we haven't reached the end, there's no path
   return null;
 }
 
 function heuristic(nodeA, nodeB) {
-  // Manhattan distance (a common heuristic for grid-based paths)
+  // Manhattan distance 
   return Math.abs(nodeA.row - nodeB.row) + Math.abs(nodeA.col - nodeB.col);
 }
 
@@ -2262,40 +2260,6 @@ function clickConfirm() { //flashes a blue box over clicked button
         if (setMenu.area.state == 20) { setMenu.area.state = 0; }           
 }
 
-/*
-function settings(id) {
-  
-    if (id === "difficulty") { difficulty(0,difficulty.removal.color); }
-    if (id === "colors") {  
-
-      undoValues.valid = 0  
-      difficulty.removal = { value:0,color:0 } 
-      highScore.totalScore = 0;
-      writeScore.score = 0;
-      resetTileCount();
-      makeGrid();
-      nextMatrix();
-      roundCorners();
-      }
-
-    sessionStorage.setItem("difficulty", difficulty.setting);
-    sessionStorage.setItem("colors", makeGrid.colors);
-    sessionStorage.setItem("size", tileSize);
-    sessionStorage.setItem("roundness", tileRoundness);
-}
-
-function checkSession() {
-
-  if (sessionStorage.length) {
-
-    difficulty.setting = parseInt(sessionStorage.getItem("difficulty"),10);
-    makeGrid.colors = parseInt(sessionStorage.getItem("colors"),10);
-    tileSize = parseInt(sessionStorage.getItem("size"),10);
-    tileRoundness = parseInt(sessionStorage.getItem("roundness"),10);
-
-    }
-}
-*/
 function newGame() { // formally known as reset tiles
 
     assingEventListener("none");
@@ -2348,8 +2312,6 @@ function newGame() { // formally known as reset tiles
 /*
 function resetTiles() { // formally known as default, also replaced with a reolad, cause screw keeping track of this...
 
-//  sessionStorage.clear();
-
   assingEventListener("none");
 
   undoValues.valid = 0;
@@ -2380,7 +2342,7 @@ function resetTiles() { // formally known as default, also replaced with a reola
   roundCorners();
   busy = true;
 }
-*/
+
 
 window.onresize = () => {
     clearTimeout(resizeId);
@@ -2388,7 +2350,9 @@ window.onresize = () => {
 }
 
 function doneResizing() { //nvm, keeping track of this...
+*/
 
+window.childCallback = () => {
   // location.reload();
   assingEventListener("none");
 
@@ -2507,7 +2471,6 @@ function MeasureFps(timeStamp) {
     else { window.requestAnimationFrame(MeasureFps); }
     }
 
-sessionStorage.clear(); //firefox mobile needs this.
 setCanvasSize();
 //setMenu(); //being called after fps is measured
 makeGrid();
